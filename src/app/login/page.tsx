@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { useRouter } from 'next/navigation';
 import { FcGoogle } from 'react-icons/fc';
@@ -8,23 +9,52 @@ import { FaXTwitter } from 'react-icons/fa6';
 export default function Login() {
   const router = useRouter();
   const supabase = createClientComponentClient();
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleGoogleLogin = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) {
+        let message = error.message;
+        if (message.includes('Unsupported provider')) {
+          message = 'Selected sign-in provider is not enabled in Supabase. Please enable it in your Supabase dashboard or choose a different sign-in method.';
+        }
+        console.error('Google sign in error:', message);
+        setErrorMessage(message);
+      }
+    } catch (err) {
+      console.error('Google sign in exception:', err);
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      setErrorMessage(errorMsg);
+    }
   };
 
   const handleTwitterLogin = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'twitter',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'twitter',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) {
+        let message = error.message;
+        if (message.includes('Unsupported provider')) {
+          message = 'Selected sign-in provider is not enabled in Supabase. Please enable it in your Supabase dashboard or choose a different sign-in method.';
+        }
+        console.error('Twitter sign in error:', message);
+        setErrorMessage(message);
+      }
+    } catch (err) {
+      console.error('Twitter sign in exception:', err);
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      setErrorMessage(errorMsg);
+    }
   };
 
   return (
@@ -49,6 +79,10 @@ export default function Login() {
             <span>Continue with X</span>
           </button>
         </div>
+
+        {errorMessage && (
+          <p className="mt-4 text-center text-red-500">{errorMessage}</p>
+        )}
 
         <p className="mt-8 text-center text-sm text-gray-500">
           By continuing, you agree to our Terms of Service and Privacy Policy.

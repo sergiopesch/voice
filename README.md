@@ -5,7 +5,10 @@ A modern web application built with Next.js that provides real-time voice intera
 ## Features
 
 - 🎙️ Real-time voice capture and processing
-- 🤖 Multiple AI model support (GPT-4, GPT-3.5, Gemini Pro)
+- 🤖 Multiple AI model support:
+  - OpenAI (GPT-4, GPT-3.5)
+  - Mistral AI (Large, Medium, Small)
+  - Google (Gemini Pro)
 - 🔄 Real-time transcription visualization
 - 🗣️ Text-to-speech response playback
 - 🔐 Secure authentication with Google and X (Twitter)
@@ -21,6 +24,7 @@ Before you begin, ensure you have the following:
 - npm or yarn
 - A Supabase account for authentication
 - OpenAI API key
+- Mistral AI API key
 - Google Cloud project with Speech-to-Text and Text-to-Speech APIs enabled
 
 ## Setup
@@ -45,6 +49,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 # OpenAI Configuration
 OPENAI_API_KEY=your_openai_api_key
 
+# Mistral Configuration
+MISTRAL_API_KEY=your_mistral_api_key
+
 # Google Cloud Configuration
 GOOGLE_CLOUD_PROJECT_ID=your_google_cloud_project_id
 GOOGLE_CLOUD_CREDENTIALS=your_google_cloud_credentials
@@ -59,11 +66,14 @@ NEXTAUTH_SECRET=your_nextauth_secret
    - Enable Google and Twitter authentication
    - Add the authentication callback URL: `http://localhost:3000/auth/callback`
 
-5. Set up Google Cloud:
-   - Create a new project
-   - Enable Speech-to-Text and Text-to-Speech APIs
-   - Create a service account and download the credentials JSON
-   - Base64 encode the credentials JSON and set it as GOOGLE_CLOUD_CREDENTIALS
+5. Set up AI Providers:
+   - Create an OpenAI account and get your API key
+   - Create a Mistral AI account and get your API key
+   - Set up Google Cloud:
+     - Create a new project
+     - Enable Speech-to-Text and Text-to-Speech APIs
+     - Create a service account and download the credentials JSON
+     - Base64 encode the credentials JSON and set it as GOOGLE_CLOUD_CREDENTIALS
 
 6. Run the development server:
 ```bash
@@ -89,7 +99,7 @@ src/
 ## Key Components
 
 - `VoiceButton`: Handles voice recording and provides visual feedback
-- `ModelPanel`: Allows users to select different AI models
+- `ModelPanel`: Allows users to select different AI models (OpenAI, Mistral, Google)
 - `TranscriptionToggle`: Toggles the visibility of transcriptions
 - `Transcription`: Displays real-time transcriptions and AI responses
 
@@ -104,7 +114,7 @@ The application uses Zustand for state management, with the following main state
 ## API Routes
 
 - `/api/transcribe`: Handles speech-to-text conversion
-- `/api/chat`: Processes text with selected AI model
+- `/api/chat`: Processes text with selected AI model (OpenAI, Mistral, or Google)
 - `/api/text-to-speech`: Converts AI responses to speech
 
 ## Authentication
@@ -125,6 +135,22 @@ The application uses Supabase for authentication, supporting:
 - 🚀 Optimized performance with Next.js App Router
 - 🧩 Modular component architecture
 - 🔍 Error handling and user feedback
+
+## Model Selection
+
+The application supports multiple AI models with different capabilities:
+
+### OpenAI Models
+- GPT-4: Most capable model for complex interactions
+- GPT-3.5 Turbo: Fast and efficient for general use
+
+### Mistral AI Models
+- Mistral Large: Powerful model for complex reasoning
+- Mistral Medium: Balanced performance for everyday tasks
+- Mistral Small: Fast and efficient for simple interactions
+
+### Google Models
+- Gemini Pro: Advanced language model for voice interactions
 
 ## Deployment
 

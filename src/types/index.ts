@@ -8,12 +8,15 @@ export interface User {
     avatar_url?: string;
 }
 
+export type AIProvider = 'openai' | 'google' | 'mistral';
+
 export interface AIModel {
     id: string;
     name: string;
-    provider: 'openai' | 'google';
+    provider: AIProvider;
     description: string;
     maxTokens: number;
+    contextWindow?: number;
 }
 
 export interface VoiceState {
