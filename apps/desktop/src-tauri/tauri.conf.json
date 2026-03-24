@@ -12,17 +12,20 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "Voice Dictation",
-        "width": 480,
-        "height": 640,
-        "resizable": true,
-        "minWidth": 360,
-        "minHeight": 480,
+        "width": 300,
+        "height": 120,
+        "resizable": false,
+        "alwaysOnTop": true,
+        "decorations": false,
+        "transparent": true,
+        "skipTaskbar": true,
         "center": true
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'"
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; media-src 'self' mediastream:"
     }
   },
   "bundle": {
@@ -50,6 +53,7 @@
   "plugins": {
     "shell": {
       "open": true
-    }
+    },
+    "global-shortcut": null
   }
 }
