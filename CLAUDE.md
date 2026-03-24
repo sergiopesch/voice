@@ -1,63 +1,77 @@
-# Voice AI - Claude Code Project Instructions
+# Voice Dictation - Claude Code Project Instructions
 
 ## Purpose
-Local-first, real-time voice interaction app. Users speak, the app transcribes, sends to an LLM, and plays back the response. Must work without sign-in or cloud accounts for the core experience.
+Free Linux- and macOS-native desktop dictation application. Local-first, privacy-conscious, no account or subscription required. Users speak, the app transcribes locally, and inserts text into the active application.
 
 ## Product Baseline
-- The app must be installable and runnable locally without authentication
-- Core voice loop (record -> transcribe -> LLM -> speak) must work offline-capable or with local models as a goal
-- Cloud providers (OpenAI, Mistral, Google Cloud) are optional enhancements, not requirements
-- No sign-in gate for basic functionality
+- Free core experience — no subscription, no account, no sign-in
+- Local-first: local audio capture, local transcription, no telemetry
+- No cloud dependency for core dictation flow
+- Linux and macOS as first-class desktop targets
+- Installable and usable immediately after download
 
 ## Stack
-- **Framework**: Next.js 15 (App Router, Turbopack dev)
-- **Language**: TypeScript 5
-- **UI**: React 19, Tailwind CSS, Headless UI, Framer Motion
+- **Desktop shell**: Tauri 2 (Rust backend + WebView frontend)
+- **Frontend**: React 19, Vite, TypeScript 5, Tailwind CSS 4
 - **State**: Zustand
-- **Auth**: Supabase (optional; Google + Twitter OAuth)
-- **ASR**: Web Speech API (client), Google Cloud Speech-to-Text (server, optional)
-- **LLM**: OpenAI, Mistral AI, Google Gemini (all optional; local model support planned)
-- **TTS**: Google Cloud Text-to-Speech (optional), browser SpeechSynthesis fallback
+- **Backend language**: Rust (Tauri commands, native integrations)
+- **ASR candidates**: whisper.cpp, faster-whisper, sherpa-onnx (benchmark before locking in)
+- **Text insertion**: Platform-specific (xdotool/wtype on Linux, Accessibility API on macOS, clipboard fallback)
 
 ## Core Commands
 ```bash
-npm run dev      # Start dev server (Turbopack)
-npm run build    # Production build
-npm run start    # Serve production build
-npm run lint     # ESLint
+npm run dev       # Start Tauri dev (frontend + Rust backend)
+npm run build     # Production Tauri build
+npm run lint      # ESLint (desktop frontend)
+npm run check     # TypeScript check all workspaces
+npm run test      # Run tests across workspaces
 ```
 
 ## Architecture
 ```
-src/
-  app/            # Next.js App Router pages + API routes
-    api/chat/     # LLM proxy (OpenAI, Mistral)
-    api/transcribe/   # Google Cloud STT (optional)
-    api/text-to-speech/ # Google Cloud TTS (optional)
-    auth/callback/    # Supabase OAuth callback (optional)
-    login/        # Login page (optional)
-    account/      # Account page (optional)
-  components/     # React UI components
-  hooks/          # useVoiceInteraction (core voice loop)
-  store/          # Zustand store
-  types/          # TypeScript types
-  middleware.ts   # Auth guard (optional; bypass when no auth configured)
+apps/
+  desktop/              # Tauri desktop application
+    src/                # React frontend
+      components/       # UI components
+      hooks/            # React hooks
+      store/            # Zustand store
+      lib/              # Tauri bridge, utilities
+      types/            # TypeScript types
+    src-tauri/          # Rust backend
+      src/              # Tauri commands, config, platform logic
+
+packages/
+  shared/               # Shared types and constants
+  audio/                # Microphone capture, device enumeration, buffering
+  asr/                  # ASR engine abstraction, local transcription
+  insertion/            # Text insertion strategies (X11, Wayland, macOS, clipboard)
+  formatting/           # Transcript cleanup, punctuation
+  config/               # Typed config, defaults
+  logging/              # Structured logging
+
+docs/
+  architecture/         # Architecture docs
+  security/             # Security docs
+  testing/              # Testing docs
+  decisions/            # ADRs
+  platform/             # Platform-specific docs
 ```
 
 ## Coding Conventions
 - Functional React components only
-- `'use client'` directive where needed
-- Zustand for global state; no prop drilling for shared state
-- API routes return `NextResponse.json()` with proper status codes
+- Zustand for global state; no prop drilling
 - Tailwind utility classes; no CSS modules
-- Path aliases via `@/` prefix
+- Path aliases via `@/` prefix in desktop app
+- Rust: idiomatic Rust with serde for Tauri command serialization
+- Packages expose types and functions via `src/index.ts`
+- npm workspaces for monorepo management
 
 ## Testing Expectations
-- No test suite exists yet. When adding tests:
-  - Use Vitest for unit/integration tests
-  - Use Playwright for E2E tests
-  - Test API routes with mock providers
-  - Test hooks with renderHook
+- Vitest for unit/integration tests
+- Playwright for E2E tests
+- Test packages independently
+- Mock Tauri commands in frontend tests
+- Create harnesses for system-level boundaries (mic, insertion)
 
 ## Documentation
 - Keep README.md in sync with actual capabilities
@@ -66,23 +80,34 @@ src/
 - Platform-specific behavior documented in `docs/platform/`
 
 ## Security Constraints
-- API keys are server-side only (never exposed to client)
-- All API routes must validate input
-- Never log full API keys or credentials
+- No authentication required — ever, for core functionality
+- No network calls in default operation
+- No telemetry by default
 - Never commit `.env`, `.env.local`, or credential files
-- Auth is optional; the app must not require it for core functionality
-- When auth is disabled, skip middleware session checks gracefully
+- Least privilege: only mic access and input insertion permissions
+- Safe local storage with documented locations
+- Dependency scrutiny: justify each significant addition
 
-## Platform Cautions
-- **Linux**: Web Speech API requires Chromium; mic needs PulseAudio/PipeWire; test Wayland + X11
-- **macOS**: Mic permission dialog required; builds need code signing + notarization for distribution
-- Both platforms: handle `getUserMedia` permission errors with user-friendly guidance
+## Platform Requirements
+### Linux
+- Detect X11 vs Wayland session type and adapt insertion strategy
+- Support PulseAudio and PipeWire for audio
+- Handle GNOME, KDE, and common Wayland compositors
+- Package targets: AppImage, .deb, Flatpak
+
+### macOS
+- Handle mic permission dialog (NSMicrophoneUsageDescription)
+- Handle accessibility permissions for text insertion
+- Package targets: .dmg, signed + notarized
 
 ## Completion Checklist
-- [ ] App runs locally with `npm run dev` without any env vars or auth
-- [ ] Voice loop works with browser-native APIs (Web Speech API + SpeechSynthesis)
-- [ ] Cloud providers degrade gracefully when API keys are missing
-- [ ] Build passes (`npm run build`)
-- [ ] Lint passes (`npm run lint`)
-- [ ] No secrets in client bundle
-- [ ] Docs reflect actual state
+- [x] Monorepo structure with Tauri app and packages
+- [x] Rust backend compiles with config commands
+- [x] Frontend builds with Vite (React + Tailwind)
+- [x] TypeScript checks pass across all packages
+- [ ] Tauri dev mode runs (needs system deps: pkg-config, libglib2.0-dev)
+- [ ] Audio capture works via packages/audio
+- [ ] Local ASR engine integrated
+- [ ] Text insertion works on at least one platform
+- [ ] Settings persist via Rust config
+- [ ] Full vertical slice: dictate → transcribe → insert

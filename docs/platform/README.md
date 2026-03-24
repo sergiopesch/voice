@@ -3,49 +3,52 @@
 ## Supported Platforms
 | Platform | Status | Notes |
 |----------|--------|-------|
-| Linux (Chromium) | Primary | Web Speech API requires Chromium-based browser |
-| Linux (Firefox) | Degraded | No Web Speech API; voice input unavailable |
-| macOS (Chrome) | Primary | Full support |
-| macOS (Safari) | Partial | Web Speech API support varies by version |
-| Windows | Untested | Not a target platform currently |
+| Linux (X11) | Primary | xdotool for text insertion |
+| Linux (Wayland) | Primary | wtype for text insertion, clipboard fallback |
+| macOS (arm64) | Primary | Accessibility API for insertion |
+| macOS (x86_64) | Primary | Same as arm64 |
+| Windows | Not targeted | Not a current goal |
 
 ## Linux
 
 ### Requirements
-- Chromium-based browser (Chrome, Edge, Brave) for voice input
+- Tauri runtime dependencies: libwebkit2gtk-4.1, libgtk-3
 - PulseAudio or PipeWire for microphone access
+- xdotool (X11) or wtype (Wayland) for text insertion
 - No root privileges needed
 
-### Known Issues
-- Flatpak/Snap browsers may require portal permissions for microphone
-- Wayland: clipboard and screen-sharing APIs behave differently than X11
-- Some Wayland compositors may block background audio capture
+### Session Detection
+The app detects session type via `XDG_SESSION_TYPE`:
+- `x11` -> use xdotool for text insertion
+- `wayland` -> use wtype or clipboard fallback
+- Desktop environment detected via `XDG_CURRENT_DESKTOP`
+
+### Known Limitations
+- Wayland text insertion depends on compositor support
+- Flatpak may require portal permissions for mic access
+- Some Wayland compositors block simulated input
 
 ### Packaging Targets
-- AppImage (universal)
+- AppImage (universal, no deps)
 - .deb (Debian/Ubuntu)
-- .rpm (Fedora/RHEL)
-- Flatpak (sandboxed distribution)
+- Flatpak (sandboxed, needs audio portal)
 
 ## macOS
 
 ### Requirements
-- Chrome or Safari for voice input
-- macOS 12+ recommended
-- Microphone permission must be granted via System Settings > Privacy & Security
+- macOS 10.15+
+- Microphone permission (System Settings > Privacy & Security > Microphone)
+- Accessibility permission for text insertion (System Settings > Privacy & Security > Accessibility)
 
-### Known Issues
-- Unsigned/un-notarized apps are blocked by Gatekeeper
-- First-run microphone permission dialog is mandatory; cannot be bypassed
-- Universal binary (arm64 + x86_64) needed for Intel + Apple Silicon
+### Known Limitations
+- Unsigned apps blocked by Gatekeeper
+- First-run permission dialogs cannot be bypassed
+- Some apps may not accept simulated input
 
 ### Packaging Targets
-- .dmg (drag-to-install)
-- Homebrew cask (CLI install)
-- .pkg (installer package)
+- .dmg (signed + notarized)
 
-## Cross-Platform Considerations
-- File paths: use XDG conventions on Linux, `~/Library/` on macOS
-- Audio: PulseAudio/PipeWire on Linux, CoreAudio on macOS
-- Permissions: handle `getUserMedia` errors with platform-specific guidance
-- The app must start and be usable with zero configuration on both platforms
+## Cross-Platform
+- Config paths: XDG on Linux, ~/Library/ on macOS (handled by Rust `dirs` crate)
+- Audio: WebView getUserMedia works on both platforms
+- The app starts and is usable with zero configuration on both platforms

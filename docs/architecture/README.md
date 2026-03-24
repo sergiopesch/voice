@@ -1,50 +1,56 @@
 # Architecture
 
 ## Overview
-Voice AI is a Next.js 15 local-first desktop voice interaction app. The core experience works entirely with browser-native APIs and no backend dependencies.
 
-## Voice Interaction Loop
+Voice Dictation is a free, local-first desktop dictation app built with Tauri 2.
 
-### Local-only (no env vars needed)
 ```
-User speaks -> Web Speech API (client STT) -> Transcription displayed
-           -> Silence detected (2s) -> Browser SpeechSynthesis (echo/placeholder)
+User speaks -> Audio Capture -> Local ASR -> Formatting -> Text Insertion
 ```
 
-### With cloud providers configured
+## Module Layout
+
 ```
-User speaks -> Web Speech API (client STT) -> Transcription displayed
-           -> Silence detected (2s) -> /api/chat (LLM) -> AI response
-           -> /api/text-to-speech (Google TTS) -> Audio playback
-           -> Fallback: browser SpeechSynthesis if Google TTS fails
+apps/desktop/           Tauri application
+  src/                  React + TypeScript frontend (Vite)
+  src-tauri/            Rust backend (config, platform, ASR sidecar)
+
+packages/shared/        Shared types across all packages
+packages/audio/         Microphone enumeration, capture, buffering
+packages/asr/           ASR engine abstraction (whisper.cpp, etc.)
+packages/insertion/     Platform-specific text insertion
+packages/formatting/    Transcript cleanup and punctuation
+packages/config/        Typed configuration with defaults
+packages/logging/       Structured logging
 ```
 
-## Module Boundaries
+## Data Flow
 
-### Client
-- **Components**: UI rendering (VoiceButton, ModelPanel, Transcription, etc.)
-- **Hooks**: `useVoiceInteraction` owns the voice capture/processing state machine
-- **Store**: Zustand store holds global state (user, model, voice state, messages)
+1. **Audio Capture** (packages/audio): WebView `getUserMedia` -> MediaRecorder -> audio blob
+2. **ASR** (packages/asr): Audio blob -> local engine (via Tauri sidecar) -> transcript events
+3. **Formatting** (packages/formatting): Raw transcript -> cleaned text
+4. **Insertion** (packages/insertion): Text -> platform-specific insertion into active app
 
-### Server (optional, activated by env vars)
-- **API Routes**: Stateless handlers that proxy to external AI services
-- **Middleware**: Auth guard using Supabase session verification (only when configured)
+## Tauri IPC Boundary
 
-### External Services (all optional)
-- **Supabase**: Authentication (Google/Twitter OAuth)
-- **OpenAI**: GPT-4, GPT-3.5 Turbo chat completions
-- **Mistral AI**: Mistral Large/Medium/Small chat
-- **Google Cloud**: Speech-to-Text (server), Text-to-Speech Neural2
+- Frontend -> Rust: `invoke("command_name", { args })` for config, platform info, ASR control
+- Rust -> Frontend: Tauri events for transcript updates, status changes
+- Audio capture stays in WebView (Web APIs are sufficient and simpler)
 
-## Key Design Decisions
-- Local-first: core experience requires zero configuration
-- Client-side STT via Web Speech API (lower latency than server round-trip)
-- Server-side TTS via Google Cloud (higher quality, optional upgrade over browser synthesis)
-- Zustand over Redux (simpler API, sufficient for this app's state complexity)
-- No message persistence (in-memory only, cleared on refresh)
-- Auth is opt-in, not opt-out
+## Platform Strategy
 
-## Platform Targets
-- **Linux**: Chromium-based browsers (Web Speech API requirement), PulseAudio/PipeWire for mic
-- **macOS**: Chrome or Safari, CoreAudio, mic permission via system dialog
-- **Desktop packaging**: Electron or Tauri (future)
+| Concern | Linux | macOS |
+|---------|-------|-------|
+| Audio | PulseAudio/PipeWire via WebView | CoreAudio via WebView |
+| ASR | whisper.cpp sidecar | whisper.cpp sidecar |
+| Insertion (primary) | xdotool (X11) / wtype (Wayland) | Accessibility API |
+| Insertion (fallback) | Clipboard paste | Clipboard paste |
+| Config storage | XDG_CONFIG_HOME | ~/Library/Application Support |
+| Packaging | AppImage, .deb, Flatpak | .dmg (signed + notarized) |
+
+## Key Decisions
+
+- **Tauri over Electron**: Smaller binary, lower memory, better for utility app
+- **Local ASR over cloud**: Privacy-first, no account needed, works offline
+- **Monorepo with packages**: Clean module boundaries, testable in isolation
+- **WebView audio capture**: Simpler than native audio bindings, sufficient for dictation

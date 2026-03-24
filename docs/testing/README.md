@@ -4,38 +4,35 @@
 No test suite exists yet. This document outlines the planned testing strategy.
 
 ## Planned Stack
-- **Unit/Integration**: Vitest + React Testing Library
-- **E2E**: Playwright
-- **API Mocking**: msw (Mock Service Worker) for external API calls
+- **Unit/Integration**: Vitest
+- **E2E**: Playwright (or Tauri's WebDriver support)
+- **Rust**: cargo test for backend logic
 
 ## Priority Test Targets
 
 ### High Priority
-1. **API Routes** (`src/app/api/*/route.ts`)
-   - Mock OpenAI, Mistral, Google Cloud clients
-   - Test input validation (missing fields, empty bodies)
-   - Test error handling (API failures, invalid credentials)
-   - Test response format consistency
-
-2. **Voice Interaction Hook** (`src/hooks/useVoiceInteraction.ts`)
-   - Mock MediaRecorder, SpeechRecognition, fetch
-   - Test state transitions (idle -> listening -> processing -> responding)
-   - Test silence detection and auto-processing
-   - Test error recovery
+1. **packages/formatting** — Pure functions, easy to test
+2. **packages/config** — Config merging and defaults
+3. **packages/logging** — Log level filtering
+4. **Rust config** (src-tauri/src/config.rs) — Serialize/deserialize, default creation
 
 ### Medium Priority
-3. **Auth Middleware** (`src/middleware.ts`)
-   - Mock Supabase session
-   - Test redirect logic for authenticated/unauthenticated users
-   - Test env var validation
+5. **packages/audio** — Mock getUserMedia, test capture lifecycle
+6. **packages/asr** — Mock ASR backends, test interface contract
+7. **Zustand store** — Test all actions produce correct state
 
-4. **Zustand Store** (`src/store/useStore.ts`)
-   - Test all actions produce correct state
+### Lower Priority (system boundaries)
+8. **packages/insertion** — Requires mocking platform APIs
+9. **E2E dictation flow** — Requires mic + ASR + insertion mocks
 
-### Low Priority
-5. **Components** - Visual/interaction testing via Playwright
+## Difficult-to-Automate Boundaries
+For system-level features that are hard to automate:
+- Create manual verification scripts in `scripts/`
+- Document expected behavior in test docs
+- Use Tauri's mock runtime for IPC testing
 
 ## Setup Required
-- Install: `npm install -D vitest @testing-library/react jsdom msw`
-- Add `vitest.config.ts`
-- Add `test` script to `package.json`
+- Install: `npm install -D vitest`
+- Add `vitest.config.ts` to apps/desktop
+- Add `test` scripts to relevant packages
+- Add `#[cfg(test)]` modules in Rust code

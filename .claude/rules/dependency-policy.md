@@ -4,27 +4,32 @@
 - Minimal dependency surface: every dependency must justify its inclusion
 - Prefer stable, widely-used packages with active maintenance
 - Prefer MIT/Apache-2.0 licensed packages
+- No cloud SDKs in core — local-first by design
 
 ## Current Dependencies (Justified)
+
+### Desktop App (apps/desktop)
 | Package | Purpose | Justification |
 |---------|---------|---------------|
-| next | Framework | Core framework; App Router, API routes, SSR |
-| react/react-dom | UI | Required by Next.js |
+| @tauri-apps/api | Desktop bridge | Tauri IPC for Rust backend communication |
+| @tauri-apps/plugin-shell | Shell access | Open URLs, spawn processes |
+| react/react-dom | UI | Lightweight UI framework for Tauri WebView |
 | zustand | State | Lightweight, minimal API, no boilerplate |
-| @supabase/* | Auth | Managed auth with OAuth support |
-| openai | LLM client | Official SDK for OpenAI API |
-| @mistralai/mistralai | LLM client | Official SDK for Mistral API |
-| @google-cloud/speech | ASR | Server-side speech-to-text |
-| @google-cloud/text-to-speech | TTS | Server-side text-to-speech |
-| ai (Vercel AI SDK) | Streaming | Unified streaming interface |
 | tailwindcss | Styling | Utility-first CSS |
-| framer-motion | Animation | Voice button animation |
-| @headlessui/react | Accessible UI | Dropdown/dialog primitives |
-| geist | Typography | Font family |
+| vite | Build | Fast dev server and bundler for Tauri frontend |
+
+### Rust Backend (apps/desktop/src-tauri)
+| Crate | Purpose | Justification |
+|-------|---------|---------------|
+| tauri | Desktop shell | Core desktop runtime |
+| tauri-plugin-shell | Shell access | Process spawning for ASR sidecars |
+| serde/serde_json | Serialization | Tauri command data exchange |
+| dirs | Path resolution | XDG/macOS standard directory resolution |
 
 ## Adding Dependencies
 - Check if the need can be met with existing deps or native APIs first
-- Run `npm audit` after adding
+- Run `npm audit` after adding JS deps
+- Run `cargo audit` after adding Rust crates
 - Document the justification in this table
 - Avoid packages with >5 transitive dependencies when a lighter alternative exists
 
