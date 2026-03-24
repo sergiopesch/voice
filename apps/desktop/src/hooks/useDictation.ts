@@ -34,18 +34,6 @@ export function useDictation() {
     }
   }, []);
 
-  const showWindowLarge = useCallback(async () => {
-    try {
-      const w = getCurrentWindow();
-      await w.setSize(new LogicalSize(300, 200));
-      await w.center();
-      await w.show();
-      await w.setFocus();
-    } catch (e) {
-      console.warn("Failed to show window:", e);
-    }
-  }, []);
-
   const startRecording = useCallback(async () => {
     try {
       clearTranscript();
@@ -210,7 +198,6 @@ export function useDictation() {
     toggle,
     startRecording,
     stopRecording,
-    showWindowLarge,
     moveWindowOffScreen,
     isRecording: status === "recording",
     isProcessing: status === "processing",

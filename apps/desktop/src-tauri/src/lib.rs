@@ -155,6 +155,36 @@ fn grant_webview_permissions(app: &tauri::App) {
     }
 }
 
+// --- Auto-download model on first launch ---
+
+fn ensure_model_downloaded() -> Result<(), String> {
+    let path = transcribe::default_model_path()?;
+    if path.exists() {
+        eprintln!("Model already downloaded: {}", path.display());
+        return Ok(());
+    }
+
+    eprintln!("Downloading speech model (one-time, ~142 MB)...");
+    let url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin";
+
+    let response = reqwest::blocking::get(url)
+        .map_err(|e| format!("Download failed: {e}"))?;
+
+    if !response.status().is_success() {
+        return Err(format!("Download failed with status: {}", response.status()));
+    }
+
+    let bytes = response
+        .bytes()
+        .map_err(|e| format!("Failed to read response: {e}"))?;
+
+    std::fs::write(&path, &bytes)
+        .map_err(|e| format!("Failed to save model: {e}"))?;
+
+    eprintln!("Model downloaded: {}", path.display());
+    Ok(())
+}
+
 // --- Invoke toggle on the frontend via JS eval ---
 
 pub fn eval_toggle(app_handle: &tauri::AppHandle) {
@@ -328,6 +358,13 @@ pub fn run() {
             if let Err(e) = tray::setup_tray(app) {
                 eprintln!("Failed to setup tray: {e}");
             }
+
+            // Auto-download model in background if not present
+            std::thread::spawn(|| {
+                if let Err(e) = ensure_model_downloaded() {
+                    eprintln!("Model auto-download failed: {e}");
+                }
+            });
 
             Ok(())
         })

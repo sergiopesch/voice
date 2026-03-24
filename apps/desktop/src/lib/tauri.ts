@@ -13,20 +13,6 @@ export async function getPlatformInfo(): Promise<PlatformInfo> {
   return invoke<PlatformInfo>("get_platform_info");
 }
 
-export interface ModelStatus {
-  downloaded: boolean;
-  path: string;
-  sizeMb: number;
-}
-
-export async function getModelStatus(): Promise<ModelStatus> {
-  return invoke<ModelStatus>("get_model_status");
-}
-
-export async function downloadModel(): Promise<string> {
-  return invoke<string>("download_model");
-}
-
 export async function transcribeAudio(samples: number[]): Promise<string> {
   return invoke<string>("transcribe_audio", { samples });
 }

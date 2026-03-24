@@ -18,9 +18,7 @@ interface AppState {
 
   config: AppConfig | null;
   platform: PlatformInfo | null;
-  modelReady: boolean;
 
-  setModelReady: (ready: boolean) => void;
   setStatus: (status: DictationStatus) => void;
   setTranscript: (transcript: string) => void;
   setInterimTranscript: (interim: string) => void;
@@ -43,9 +41,7 @@ export const useStore = create<AppState>((set) => ({
   audioLevel: 0,
   config: null,
   platform: null,
-  modelReady: false,
 
-  setModelReady: (ready) => set({ modelReady: ready }),
   setStatus: (status) => set({ status, error: status === "error" ? undefined : null }),
   setTranscript: (transcript) => set({ transcript }),
   setInterimTranscript: (interim) => set({ interimTranscript: interim }),
