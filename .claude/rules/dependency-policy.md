@@ -12,8 +12,6 @@
 | Package | Purpose | Justification |
 |---------|---------|---------------|
 | @tauri-apps/api | Desktop bridge | Tauri IPC for Rust backend communication |
-| @tauri-apps/plugin-global-shortcut | Global hotkey | Alt+D shortcut registration from frontend (JS types) |
-| @tauri-apps/plugin-shell | Shell access | Open URLs, spawn processes |
 | react/react-dom | UI | Lightweight UI framework for Tauri WebView |
 | zustand | State | Lightweight, minimal API, no boilerplate |
 | tailwindcss | Styling | Utility-first CSS |
@@ -23,12 +21,11 @@
 | Crate | Purpose | Justification |
 |-------|---------|---------------|
 | tauri | Desktop shell | Core desktop runtime |
-| tauri-plugin-shell | Shell access | Process spawning for ASR sidecars |
+| tauri-plugin-shell | Shell access | Process spawning, URL opening |
 | tauri-plugin-global-shortcut | Global hotkey | Register Alt+D system-wide shortcut |
 | serde/serde_json | Serialization | Tauri command data exchange |
 | dirs | Path resolution | XDG/macOS standard directory resolution |
 | whisper-rs | ASR engine | Local speech-to-text via whisper.cpp bindings |
-| hound | WAV parsing | Audio format handling for whisper input |
 | reqwest | HTTP client | One-time model download from Hugging Face |
 | evdev (Linux) | Input events | Fallback global hotkey via raw keyboard on Wayland |
 | webkit2gtk (Linux) | WebView control | Auto-grant mic permissions in WebKitGTK |

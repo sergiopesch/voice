@@ -143,7 +143,7 @@ export function useDictation() {
 
     // Resample to 16kHz if needed
     if (Math.abs(sampleRate - TARGET_SAMPLE_RATE) > 1) {
-      merged = resample(merged, sampleRate, TARGET_SAMPLE_RATE) as Float32Array<ArrayBuffer>;
+      merged = resample(merged, sampleRate, TARGET_SAMPLE_RATE);
     }
 
     // Skip very short recordings (< 0.3s)
@@ -205,10 +205,10 @@ export function useDictation() {
 }
 
 function resample(
-  input: Float32Array,
+  input: Float32Array<ArrayBuffer>,
   fromRate: number,
   toRate: number,
-): Float32Array {
+): Float32Array<ArrayBuffer> {
   const ratio = fromRate / toRate;
   const outputLength = Math.round(input.length / ratio);
   const output = new Float32Array(outputLength);

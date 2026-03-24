@@ -46,7 +46,7 @@ The setup script handles most of this, but for reference:
 
 | | Linux | macOS |
 |---|---|---|
-| **Runtime** | Node.js 18+, Rust | Node.js 18+, Rust, Xcode CLI |
+| **Runtime** | Node.js 20+, Rust | Node.js 20+, Rust, Xcode CLI |
 | **Text insertion** | ydotool (Wayland) or xdotool (X11) | — |
 | **Hotkey (Wayland)** | User in `input` group | — |
 
@@ -76,7 +76,7 @@ sudo apt install xdotool xclip
 
 ```
 apps/desktop/
-  src/                React frontend (model setup)
+  src/                React frontend (hooks, store, types)
   src-tauri/          Rust backend
     src/lib.rs        App setup, hotkey, commands
     src/tray.rs       System tray icon + menu

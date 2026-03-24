@@ -63,7 +63,10 @@ pub fn update_tray_icon(app: &tauri::AppHandle, recording: bool) {
     let icon = tauri::image::Image::new_owned(icon_rgba, 32, 32);
 
     let state = app.state::<TrayMutex>();
-    let tray_state = state.lock().unwrap();
+    let Ok(tray_state) = state.lock() else {
+        eprintln!("Failed to lock tray state");
+        return;
+    };
 
     if let Some(tray) = app.tray_by_id(&tray_state.tray_id) {
         let tooltip = if recording {
@@ -127,7 +130,7 @@ fn mic_shape(nx: f32, ny: f32) -> f32 {
     let arc_dx = (nx - cx) / arc_rx;
     let arc_dy = (ny - arc_cy) / arc_ry;
     let arc_dist = arc_dx * arc_dx + arc_dy * arc_dy;
-    if arc_dist >= 0.7 && arc_dist <= 1.0 && ny > 0.56 {
+    if (0.7..=1.0).contains(&arc_dist) && ny > 0.56 {
         return smooth_edge(1.0 - (arc_dist - 0.85).abs() / 0.15, 0.3);
     }
 
@@ -154,5 +157,5 @@ fn smooth_edge(v: f32, softness: f32) -> f32 {
     if softness <= 0.0 {
         return if v > 0.0 { 1.0 } else { 0.0 };
     }
-    (v / softness).min(1.0).max(0.0)
+    (v / softness).clamp(0.0, 1.0)
 }

@@ -15,8 +15,8 @@ impl WhisperState {
         }
     }
 
-    pub fn load_model(&mut self, path: &PathBuf) -> Result<(), String> {
-        if self.model_path.as_ref() == Some(path) && self.ctx.is_some() {
+    pub fn load_model(&mut self, path: &std::path::Path) -> Result<(), String> {
+        if self.model_path.as_deref() == Some(path) && self.ctx.is_some() {
             return Ok(());
         }
 
@@ -27,7 +27,7 @@ impl WhisperState {
         .map_err(|e| format!("Failed to load whisper model: {e}"))?;
 
         self.ctx = Some(ctx);
-        self.model_path = Some(path.clone());
+        self.model_path = Some(path.to_path_buf());
         Ok(())
     }
 

@@ -5,55 +5,37 @@ use std::path::PathBuf;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AppConfig {
+    #[serde(default = "default_hotkey")]
     pub hotkey: String,
-    pub dictation_mode: DictationMode,
+    #[serde(default)]
     pub selected_mic: Option<String>,
+    #[serde(default = "default_insertion_strategy")]
     pub insertion_strategy: InsertionStrategy,
-    pub asr_engine: AsrEngine,
-    pub log_level: LogLevel,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum DictationMode {
-    PushToTalk,
-    Toggle,
+fn default_hotkey() -> String {
+    "Alt+D".to_string()
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+fn default_insertion_strategy() -> InsertionStrategy {
+    InsertionStrategy::Auto
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum InsertionStrategy {
+    #[default]
     Auto,
     Clipboard,
     TypeSimulation,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum AsrEngine {
-    WhisperCpp,
-    FasterWhisper,
-    SherpaOnnx,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum LogLevel {
-    Error,
-    Warn,
-    Info,
-    Debug,
-}
-
 impl Default for AppConfig {
     fn default() -> Self {
         Self {
-            hotkey: "Super+Shift+D".to_string(),
-            dictation_mode: DictationMode::PushToTalk,
+            hotkey: default_hotkey(),
             selected_mic: None,
             insertion_strategy: InsertionStrategy::Auto,
-            asr_engine: AsrEngine::WhisperCpp,
-            log_level: LogLevel::Info,
         }
     }
 }

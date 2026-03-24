@@ -35,59 +35,6 @@ pub struct PlatformInfo {
     desktop: String,
 }
 
-// --- Model management ---
-
-#[derive(serde::Serialize)]
-pub struct ModelStatus {
-    downloaded: bool,
-    path: String,
-    size_mb: f64,
-}
-
-#[tauri::command]
-fn get_model_status() -> Result<ModelStatus, String> {
-    let path = transcribe::default_model_path()?;
-    let downloaded = path.exists();
-    let size_mb = if downloaded {
-        std::fs::metadata(&path)
-            .map(|m| m.len() as f64 / 1_048_576.0)
-            .unwrap_or(0.0)
-    } else {
-        0.0
-    };
-    Ok(ModelStatus {
-        downloaded,
-        path: path.to_string_lossy().to_string(),
-        size_mb,
-    })
-}
-
-#[tauri::command]
-fn download_model() -> Result<String, String> {
-    let path = transcribe::default_model_path()?;
-    if path.exists() {
-        return Ok(path.to_string_lossy().to_string());
-    }
-
-    let url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin";
-
-    let response = reqwest::blocking::get(url)
-        .map_err(|e| format!("Download failed: {e}"))?;
-
-    if !response.status().is_success() {
-        return Err(format!("Download failed with status: {}", response.status()));
-    }
-
-    let bytes = response
-        .bytes()
-        .map_err(|e| format!("Failed to read response: {e}"))?;
-
-    std::fs::write(&path, &bytes)
-        .map_err(|e| format!("Failed to save model: {e}"))?;
-
-    Ok(path.to_string_lossy().to_string())
-}
-
 // --- Transcription ---
 
 #[tauri::command]
@@ -341,8 +288,6 @@ pub fn run() {
             get_config,
             save_config,
             get_platform_info,
-            get_model_status,
-            download_model,
             transcribe_audio,
             insert_text,
             set_recording_state,

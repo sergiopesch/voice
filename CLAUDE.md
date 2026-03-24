@@ -1,4 +1,4 @@
-# Voice - Claude Code Project Instructions
+# Voice Dictation - Claude Code Project Instructions
 
 ## Purpose
 Free Linux- and macOS-native desktop dictation application. Local-first, privacy-conscious, no account or subscription required. Users speak, the app transcribes locally, and inserts text into the active application.
@@ -21,17 +21,17 @@ Free Linux- and macOS-native desktop dictation application. Local-first, privacy
 
 ## Core Commands
 ```bash
-./scripts/setup.sh  # One-command setup (deps + npm install)
-npm run dev          # Start Tauri dev (frontend + Rust backend)
-npm run build        # Production Tauri build
-npm run check        # TypeScript check
+./scripts/setup.sh           # One-command setup (deps + npm install)
+./scripts/setup.sh --install # Build + install .deb
+npm run dev                  # Start Tauri dev (frontend + Rust backend)
+npm run build                # Production Tauri build
+npm run check                # TypeScript check
 ```
 
 ## Architecture
 ```
 apps/desktop/              # Tauri desktop application
   src/                     # React frontend
-    components/            # Overlay, ModelSetup
     hooks/                 # useDictation, useGlobalShortcut
     store/                 # Zustand store
     lib/                   # Tauri bridge

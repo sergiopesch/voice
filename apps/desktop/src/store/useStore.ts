@@ -42,7 +42,7 @@ export const useStore = create<AppState>((set) => ({
   config: null,
   platform: null,
 
-  setStatus: (status) => set({ status, error: status === "error" ? undefined : null }),
+  setStatus: (status) => set({ status, error: null }),
   setTranscript: (transcript) => set({ transcript }),
   setInterimTranscript: (interim) => set({ interimTranscript: interim }),
   setError: (error) => set({ error, status: error ? "error" : "idle" }),

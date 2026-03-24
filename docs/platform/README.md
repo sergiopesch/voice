@@ -4,7 +4,7 @@
 | Platform | Status | Notes |
 |----------|--------|-------|
 | Linux (X11) | Primary | xdotool for text insertion |
-| Linux (Wayland) | Primary | wtype for text insertion, clipboard fallback |
+| Linux (Wayland) | Primary | ydotool for text insertion, clipboard fallback |
 | macOS (arm64) | Primary | Accessibility API for insertion |
 | macOS (x86_64) | Primary | Same as arm64 |
 | Windows | Not targeted | Not a current goal |
@@ -14,13 +14,13 @@
 ### Requirements
 - Tauri runtime dependencies: libwebkit2gtk-4.1, libgtk-3
 - PulseAudio or PipeWire for microphone access
-- xdotool (X11) or wtype (Wayland) for text insertion
+- xdotool (X11) or ydotool (Wayland) for text insertion
 - No root privileges needed
 
 ### Session Detection
 The app detects session type via `XDG_SESSION_TYPE`:
 - `x11` -> use xdotool for text insertion
-- `wayland` -> use wtype or clipboard fallback
+- `wayland` -> use ydotool or clipboard fallback
 - Desktop environment detected via `XDG_CURRENT_DESKTOP`
 
 ### Known Limitations
