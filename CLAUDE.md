@@ -110,8 +110,9 @@ docs/
 - [x] Text insertion works on Linux (ydotool/xdotool + clipboard fallback)
 - [x] Global hotkey (Alt+D) via Tauri plugin + evdev + socket fallbacks
 - [x] Tauri capabilities configured for window/event/shortcut permissions
-- [ ] Tauri dev mode runs (needs system deps: pkg-config, libglib2.0-dev)
-- [ ] Audio capture tested end-to-end
+- [x] Tauri dev mode runs (requires system deps and `sg input` for evdev on Wayland)
+- [x] Audio capture tested end-to-end (WebView getUserMedia → ScriptProcessorNode)
+- [x] Full vertical slice: dictate → transcribe → insert (confirmed working 2026-03-24)
 - [ ] Settings persist via Rust config
-- [ ] Full vertical slice: dictate → transcribe → insert
 - [ ] macOS text insertion (Accessibility API)
+- [ ] ydotoold setup documentation for Wayland text insertion
