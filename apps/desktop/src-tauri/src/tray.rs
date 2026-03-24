@@ -13,7 +13,7 @@ pub struct TrayState {
 pub type TrayMutex = Mutex<TrayState>;
 
 pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
-    let quit = MenuItemBuilder::with_id("quit", "Quit Voice Dictation").build(app)?;
+    let quit = MenuItemBuilder::with_id("quit", "Quit Voice").build(app)?;
     let hotkey = MenuItemBuilder::with_id("hotkey", "Hotkey: Alt+D")
         .enabled(false)
         .build(app)?;
@@ -33,7 +33,7 @@ pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let tray = TrayIconBuilder::new()
         .icon(icon)
         .menu(&menu)
-        .tooltip("Voice Dictation")
+        .tooltip("Voice")
         .on_menu_event(move |app, event| match event.id().as_ref() {
             "quit" => {
                 app.exit(0);
@@ -67,9 +67,9 @@ pub fn update_tray_icon(app: &tauri::AppHandle, recording: bool) {
 
     if let Some(tray) = app.tray_by_id(&tray_state.tray_id) {
         let tooltip = if recording {
-            "Voice Dictation - Recording..."
+            "Voice — Recording..."
         } else {
-            "Voice Dictation"
+            "Voice"
         };
         let _ = tray.set_icon(Some(icon));
         let _ = tray.set_tooltip(Some(tooltip));

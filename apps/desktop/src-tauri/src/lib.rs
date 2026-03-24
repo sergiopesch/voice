@@ -198,7 +198,7 @@ fn register_global_shortcut(app: &tauri::App) {
 
 fn socket_path() -> std::path::PathBuf {
     let runtime_dir = std::env::var("XDG_RUNTIME_DIR").unwrap_or_else(|_| "/tmp".to_string());
-    std::path::PathBuf::from(runtime_dir).join("voice-dictation.sock")
+    std::path::PathBuf::from(runtime_dir).join("voice.sock")
 }
 
 fn start_socket_listener(app_handle: tauri::AppHandle) {

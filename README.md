@@ -1,4 +1,4 @@
-# Voice Dictation
+# Voice
 
 Free, local-first desktop dictation for Linux and macOS. Press a hotkey, speak, and your words appear wherever your cursor is. No account, no cloud, no subscription.
 
@@ -10,13 +10,13 @@ cd voice
 ./scripts/setup.sh --install
 ```
 
-This installs dependencies, builds the app, and adds **Voice Dictation** to your application launcher. Find it next to your other apps, double-click to launch, and it appears in the system tray.
+This installs dependencies, builds the app, and adds **Voice** to your application launcher. Find it next to your other apps, double-click to launch, and it appears in the system tray.
 
 > First launch downloads the speech model (~142 MB, one-time).
 
 ## How It Works
 
-1. Open **Voice Dictation** from your app launcher — it appears in the **system tray**
+1. Open **Voice** from your app launcher — it appears in the **system tray**
 2. Press **Alt+D** → speak → press **Alt+D** again
 3. Text is transcribed locally and typed where your cursor is
 

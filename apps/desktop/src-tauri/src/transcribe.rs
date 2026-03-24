@@ -74,11 +74,11 @@ pub fn model_dir() -> Result<PathBuf, String> {
     let data_dir = if cfg!(target_os = "macos") {
         dirs::home_dir()
             .ok_or("Cannot find home directory")?
-            .join("Library/Application Support/VoiceDictation/models")
+            .join("Library/Application Support/Voice/models")
     } else {
         dirs::data_dir()
             .ok_or("Cannot find data directory")?
-            .join("voice-dictation/models")
+            .join("voice/models")
     };
     std::fs::create_dir_all(&data_dir).map_err(|e| format!("Failed to create model dir: {e}"))?;
     Ok(data_dir)

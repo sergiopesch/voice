@@ -2,10 +2,10 @@
 
 ## Overview
 
-Voice Dictation is a free, local-first desktop dictation app built with Tauri 2.
+Voice is a free, local-first desktop dictation app built with Tauri 2.
 
 ```
-User speaks -> Audio Capture -> Local ASR -> Formatting -> Text Insertion
+User speaks -> Audio Capture -> Local ASR -> Text Insertion
 ```
 
 ## Module Layout
@@ -13,28 +13,24 @@ User speaks -> Audio Capture -> Local ASR -> Formatting -> Text Insertion
 ```
 apps/desktop/           Tauri application
   src/                  React + TypeScript frontend (Vite)
-  src-tauri/            Rust backend (config, platform, ASR sidecar)
-
-packages/shared/        Shared types across all packages
-packages/audio/         Microphone enumeration, capture, buffering
-packages/asr/           ASR engine abstraction (whisper.cpp, etc.)
-packages/insertion/     Platform-specific text insertion
-packages/formatting/    Transcript cleanup and punctuation
-packages/config/        Typed configuration with defaults
-packages/logging/       Structured logging
+  src-tauri/            Rust backend
+    src/lib.rs          App setup, hotkey registration, commands
+    src/tray.rs         System tray icon and menu
+    src/transcribe.rs   whisper.cpp integration via whisper-rs
+    src/insertion.rs    Text insertion (ydotool/xdotool/clipboard)
+    src/config.rs       Settings persistence
 ```
 
 ## Data Flow
 
-1. **Audio Capture** (packages/audio): WebView `getUserMedia` -> MediaRecorder -> audio blob
-2. **ASR** (packages/asr): Audio blob -> local engine (via Tauri sidecar) -> transcript events
-3. **Formatting** (packages/formatting): Raw transcript -> cleaned text
-4. **Insertion** (packages/insertion): Text -> platform-specific insertion into active app
+1. **Audio Capture**: WebView `getUserMedia` -> ScriptProcessorNode -> Float32Array samples
+2. **ASR**: Samples sent to Rust via Tauri invoke -> whisper-rs -> transcript string
+3. **Insertion**: Transcript -> ydotool/xdotool type simulation or clipboard paste
 
 ## Tauri IPC Boundary
 
-- Frontend -> Rust: `invoke("command_name", { args })` for config, platform info, ASR control
-- Rust -> Frontend: Tauri events for transcript updates, status changes
+- Frontend -> Rust: `invoke("command_name", { args })` for config, platform info, transcription, insertion
+- Rust -> Frontend: `window.eval()` for toggle trigger from global hotkey
 - Audio capture stays in WebView (Web APIs are sufficient and simpler)
 
 ## Platform Strategy
@@ -42,15 +38,15 @@ packages/logging/       Structured logging
 | Concern | Linux | macOS |
 |---------|-------|-------|
 | Audio | PulseAudio/PipeWire via WebView | CoreAudio via WebView |
-| ASR | whisper.cpp sidecar | whisper.cpp sidecar |
-| Insertion (primary) | xdotool (X11) / wtype (Wayland) | Accessibility API |
+| ASR | whisper.cpp via whisper-rs | whisper.cpp via whisper-rs |
+| Insertion (primary) | xdotool (X11) / ydotool (Wayland) | Accessibility API |
 | Insertion (fallback) | Clipboard paste | Clipboard paste |
 | Config storage | XDG_CONFIG_HOME | ~/Library/Application Support |
-| Packaging | AppImage, .deb, Flatpak | .dmg (signed + notarized) |
+| Packaging | .deb, .rpm, AppImage | .dmg (signed + notarized) |
 
 ## Key Decisions
 
 - **Tauri over Electron**: Smaller binary, lower memory, better for utility app
 - **Local ASR over cloud**: Privacy-first, no account needed, works offline
-- **Monorepo with packages**: Clean module boundaries, testable in isolation
+- **Tray-only UX**: No visible window, app runs from system tray
 - **WebView audio capture**: Simpler than native audio bindings, sufficient for dictation

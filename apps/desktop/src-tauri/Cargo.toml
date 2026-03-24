@@ -2,7 +2,7 @@
 name = "voice-dictation"
 version = "0.1.0"
 description = "Free Linux- and macOS-native voice dictation"
-authors = ["Voice Dictation Contributors"]
+authors = ["Voice Contributors"]
 edition = "2021"
 
 [lib]

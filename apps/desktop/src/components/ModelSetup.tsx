@@ -36,7 +36,7 @@ export function ModelSetup({ onComplete }: ModelSetupProps) {
         Speech Model Required
       </h2>
       <p className="text-sm text-[var(--color-text-secondary)] mb-1">
-        Voice Dictation uses a local speech recognition model.
+        Voice uses a local speech recognition model.
       </p>
       <p className="text-xs text-[var(--color-text-secondary)] mb-6 opacity-70">
         Whisper base.en (~142 MB) — runs entirely on your machine, no data leaves your computer.

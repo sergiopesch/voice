@@ -64,8 +64,8 @@
 - Universal binary (arm64 + x86_64) preferred
 
 ### Paths
-- Use `~/Library/Application Support/VoiceDictation` for app data
-- Use `~/Library/Caches/VoiceDictation` for cache
+- Use `~/Library/Application Support/Voice` for app data
+- Use `~/Library/Caches/Voice` for cache
 - Never write to `/Applications` programmatically
 
 ## Cross-Platform

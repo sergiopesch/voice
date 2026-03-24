@@ -26,9 +26,9 @@ The app runs entirely locally with no authentication, no cloud accounts, and no 
 ## Data Storage Locations
 | Data | Linux | macOS |
 |------|-------|-------|
-| Config | `~/.config/voice-dictation/config.json` | `~/Library/Application Support/VoiceDictation/config.json` |
-| Logs | `~/.local/share/voice-dictation/logs/` | `~/Library/Logs/VoiceDictation/` |
-| Models | `~/.local/share/voice-dictation/models/` | `~/Library/Application Support/VoiceDictation/models/` |
+| Config | `~/.config/voice/config.json` | `~/Library/Application Support/Voice/config.json` |
+| Logs | `~/.local/share/voice/logs/` | `~/Library/Logs/Voice/` |
+| Models | `~/.local/share/voice/models/` | `~/Library/Application Support/Voice/models/` |
 
 ## Privacy
 - Audio is processed locally and never sent to external services

@@ -63,11 +63,11 @@ impl AppConfig {
         let config_dir = if cfg!(target_os = "macos") {
             dirs::home_dir()
                 .ok_or("Cannot find home directory")?
-                .join("Library/Application Support/VoiceDictation")
+                .join("Library/Application Support/Voice")
         } else {
             dirs::config_dir()
                 .ok_or("Cannot find config directory")?
-                .join("voice-dictation")
+                .join("voice")
         };
         fs::create_dir_all(&config_dir)?;
         Ok(config_dir.join("config.json"))

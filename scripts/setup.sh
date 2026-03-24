@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Voice Dictation — one-command setup
+# Voice — one-command setup
 # Usage: ./scripts/setup.sh           (dev mode)
 #        ./scripts/setup.sh --install  (build + install as desktop app)
 
@@ -17,7 +17,7 @@ fail()  { echo -e "${RED}✗${NC} $*"; exit 1; }
 INSTALL_MODE=false
 [[ "${1:-}" == "--install" ]] && INSTALL_MODE=true
 
-echo "Voice Dictation — Setup"
+echo "Voice — Setup"
 echo "━━━━━━━━━━━━━━━━━━━━━━"
 echo
 
@@ -148,7 +148,7 @@ if [[ "$INSTALL_MODE" == true ]]; then
       echo
       echo "Installing .deb package..."
       sudo dpkg -i "$DEB"
-      info "Installed! Find 'Voice Dictation' in your application launcher."
+      info "Installed! Find 'Voice' in your application launcher."
     else
       warn "No .deb package found. You can run directly:"
       echo "  apps/desktop/src-tauri/target/release/voice-dictation"
@@ -159,7 +159,7 @@ if [[ "$INSTALL_MODE" == true ]]; then
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo -e "${GREEN}Installed!${NC}"
   echo
-  echo "Open 'Voice Dictation' from your app launcher,"
+  echo "Open 'Voice' from your app launcher,"
   echo "or run: voice-dictation"
   echo
   echo "Press Alt+D to dictate!"

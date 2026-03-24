@@ -1,4 +1,4 @@
-# Voice Dictation - Claude Code Project Instructions
+# Voice - Claude Code Project Instructions
 
 ## Purpose
 Free Linux- and macOS-native desktop dictation application. Local-first, privacy-conscious, no account or subscription required. Users speak, the app transcribes locally, and inserts text into the active application.
