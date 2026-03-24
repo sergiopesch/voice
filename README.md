@@ -2,31 +2,41 @@
 
 Free, local-first desktop dictation for Linux and macOS. Press a hotkey, speak, and your words appear wherever your cursor is. No account, no cloud, no subscription.
 
-## Quick Start
+## Install
 
 ```bash
 git clone https://github.com/sergiopesch/voice.git
 cd voice
-./scripts/setup.sh   # installs all dependencies
-npm run dev           # launches the app
+./scripts/setup.sh --install
 ```
 
-On first launch, the app prompts to download the speech model (~142 MB, one-time). After that, press **Alt+D** to dictate.
+This installs dependencies, builds the app, and adds **Voice Dictation** to your application launcher. Find it next to your other apps, double-click to launch, and it appears in the system tray.
+
+> First launch downloads the speech model (~142 MB, one-time).
 
 ## How It Works
 
-1. The app lives in your **system tray** (top bar, next to volume/battery)
+1. Open **Voice Dictation** from your app launcher — it appears in the **system tray**
 2. Press **Alt+D** → speak → press **Alt+D** again
-3. Text is transcribed locally and inserted where your cursor is
+3. Text is transcribed locally and typed where your cursor is
 
 No visible window. No network calls. Everything runs on your machine.
+
+## Development
+
+```bash
+./scripts/setup.sh    # install deps only (no build)
+npm run dev           # run in dev mode with hot reload
+npm run build         # production build
+npm run check         # TypeScript type-check
+```
 
 ## Features
 
 - **Fully local** — audio never leaves your machine
-- **No sign-in** — works immediately after install
+- **No sign-in** — works immediately
 - **Global hotkey** (Alt+D) — works from any application
-- **System tray** — white mic (idle), red mic (recording)
+- **System tray** — mic icon turns red while recording
 - **Local ASR** — whisper.cpp (base.en model)
 - **Smart insertion** — types into the focused app, clipboard fallback
 
@@ -41,7 +51,7 @@ The setup script handles most of this, but for reference:
 | **Hotkey (Wayland)** | User in `input` group | — |
 
 <details>
-<summary>Manual dependency install (if not using setup script)</summary>
+<summary>Manual dependency install</summary>
 
 **Linux (apt)**:
 ```bash
@@ -62,14 +72,6 @@ sudo apt install xdotool xclip
 ```
 </details>
 
-## Commands
-
-```bash
-npm run dev       # Start Tauri dev (frontend + Rust backend)
-npm run build     # Production build
-npm run check     # TypeScript type-check
-```
-
 ## Architecture
 
 ```
@@ -85,7 +87,7 @@ apps/desktop/
 
 ## Stack
 
-Tauri 2 (Rust + WebView) · React 19 · Vite · TypeScript · Tailwind CSS 4 · Zustand · whisper.cpp via whisper-rs
+Tauri 2 · React 19 · Vite · TypeScript · Tailwind CSS 4 · Zustand · whisper.cpp
 
 ## License
 

@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Voice Dictation — one-command setup for Linux
-# Usage: ./scripts/setup.sh
+# Voice Dictation — one-command setup
+# Usage: ./scripts/setup.sh           (dev mode)
+#        ./scripts/setup.sh --install  (build + install as desktop app)
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -12,6 +13,9 @@ NC='\033[0m'
 info()  { echo -e "${GREEN}✓${NC} $*"; }
 warn()  { echo -e "${YELLOW}!${NC} $*"; }
 fail()  { echo -e "${RED}✗${NC} $*"; exit 1; }
+
+INSTALL_MODE=false
+[[ "${1:-}" == "--install" ]] && INSTALL_MODE=true
 
 echo "Voice Dictation — Setup"
 echo "━━━━━━━━━━━━━━━━━━━━━━"
@@ -130,14 +134,48 @@ echo "Installing npm dependencies..."
 npm install --silent
 info "npm dependencies installed"
 
-echo
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo -e "${GREEN}Setup complete!${NC}"
-echo
-echo "Start the app:"
-echo "  npm run dev"
-echo
-echo "On first launch, the app will prompt to download the"
-echo "whisper speech model (~142 MB, one-time)."
-echo
-echo "Then press Alt+D to dictate!"
+# --- Build and install ---
+if [[ "$INSTALL_MODE" == true ]]; then
+  echo
+  echo "Building production release..."
+  export PATH="$HOME/.cargo/bin:$PATH"
+  npm run build 2>&1 | tail -5
+  info "Build complete"
+
+  if [[ "$OS" == "linux" ]]; then
+    DEB=$(find apps/desktop/src-tauri/target/release/bundle/deb -name "*.deb" 2>/dev/null | head -1)
+    if [[ -n "$DEB" ]]; then
+      echo
+      echo "Installing .deb package..."
+      sudo dpkg -i "$DEB"
+      info "Installed! Find 'Voice Dictation' in your application launcher."
+    else
+      warn "No .deb package found. You can run directly:"
+      echo "  apps/desktop/src-tauri/target/release/voice-dictation"
+    fi
+  fi
+
+  echo
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo -e "${GREEN}Installed!${NC}"
+  echo
+  echo "Open 'Voice Dictation' from your app launcher,"
+  echo "or run: voice-dictation"
+  echo
+  echo "Press Alt+D to dictate!"
+else
+  echo
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo -e "${GREEN}Setup complete!${NC}"
+  echo
+  echo "Development mode:"
+  echo "  npm run dev"
+  echo
+  echo "Install as desktop app:"
+  echo "  ./scripts/setup.sh --install"
+  echo
+  echo "On first launch, the app downloads the whisper"
+  echo "speech model (~142 MB, one-time)."
+  echo
+  echo "Then press Alt+D to dictate!"
+fi
