@@ -21,21 +21,22 @@ pub fn insert_text(text: &str, preferred: &str) -> Result<InsertionResult, Strin
     let session = detect_session();
 
     match preferred {
-        "auto" => {
-            // On Wayland (GNOME): ydotool works via uinput (kernel-level, compositor-independent)
+        "auto" | "type-simulation" => {
+            // type-simulation and auto both try direct typing first, then clipboard fallback.
+            // On Wayland: ydotool works via uinput (kernel-level, compositor-independent)
             // On X11: xdotool works via X11 protocol
-            // Fallback: clipboard paste
             if session == "wayland" {
                 if try_ydotool(text) {
                     return Ok(InsertionResult { strategy: ActiveStrategy::Ydotool, success: true });
                 }
-                // Fallback: clipboard paste via wl-copy + ydotool Ctrl+V
+                eprintln!("ydotool type failed, falling back to clipboard paste");
                 clipboard_paste_wayland(text)?;
                 Ok(InsertionResult { strategy: ActiveStrategy::Clipboard, success: true })
             } else {
                 if try_xdotool(text) {
                     return Ok(InsertionResult { strategy: ActiveStrategy::Xdotool, success: true });
                 }
+                eprintln!("xdotool type failed, falling back to clipboard paste");
                 clipboard_paste_x11(text)?;
                 Ok(InsertionResult { strategy: ActiveStrategy::Clipboard, success: true })
             }
@@ -93,9 +94,15 @@ fn clipboard_paste_wayland(text: &str) -> Result<(), String> {
 
     // Simulate Ctrl+V via ydotool
     std::thread::sleep(std::time::Duration::from_millis(50));
-    let _ = Command::new("ydotool")
+    let paste_ok = Command::new("ydotool")
         .args(["key", "29:1", "47:1", "47:0", "29:0"]) // Ctrl down, V down, V up, Ctrl up
-        .status();
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false);
+
+    if !paste_ok {
+        eprintln!("Warning: ydotool Ctrl+V failed — text is in clipboard, paste manually with Ctrl+V");
+    }
 
     // Restore clipboard after a delay
     std::thread::sleep(std::time::Duration::from_millis(100));

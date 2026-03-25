@@ -1,13 +1,14 @@
 use tauri::{
-    menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem},
+    menu::{MenuBuilder, MenuItem, MenuItemBuilder, PredefinedMenuItem},
     tray::TrayIconBuilder,
     Manager,
 };
 use std::sync::Mutex;
 
-/// Holds the tray icon ID so we can update it later
+/// Holds the tray icon ID and toggle menu item for runtime updates
 pub struct TrayState {
     pub tray_id: String,
+    pub toggle_item: MenuItem<tauri::Wry>,
 }
 
 pub type TrayMutex = Mutex<TrayState>;
@@ -46,12 +47,12 @@ pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         .build(app)?;
 
     let tray_id = tray.id().as_ref().to_string();
-    app.manage(Mutex::new(TrayState { tray_id }));
+    app.manage(Mutex::new(TrayState { tray_id, toggle_item: toggle }));
 
     Ok(())
 }
 
-/// Update the tray icon to reflect recording state
+/// Update the tray icon and menu to reflect recording state
 pub fn update_tray_icon(app: &tauri::AppHandle, recording: bool) {
     let color = if recording {
         [255, 80, 80, 240] // Red when recording
@@ -77,6 +78,10 @@ pub fn update_tray_icon(app: &tauri::AppHandle, recording: bool) {
         let _ = tray.set_icon(Some(icon));
         let _ = tray.set_tooltip(Some(tooltip));
     }
+
+    // Update the menu toggle text
+    let label = if recording { "Stop Dictation" } else { "Start Dictation" };
+    let _ = tray_state.toggle_item.set_text(label);
 }
 
 fn create_mic_icon(size: u32, color: [u8; 4]) -> Vec<u8> {

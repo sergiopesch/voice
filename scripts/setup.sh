@@ -22,21 +22,17 @@ echo "━━━━━━━━━━━━━━━━━━━━━━"
 echo
 
 # --- Detect OS ---
-if [[ "$(uname)" == "Darwin" ]]; then
-  OS="macos"
-elif [[ "$(uname)" == "Linux" ]]; then
-  OS="linux"
-else
-  fail "Unsupported OS: $(uname)"
+if [[ "$(uname)" != "Linux" ]]; then
+  fail "Voice only supports Linux. Detected: $(uname)"
 fi
 
 # --- Check Node.js ---
 if command -v node &>/dev/null; then
   NODE_VER=$(node -v | sed 's/v//' | cut -d. -f1)
-  if (( NODE_VER >= 18 )); then
+  if (( NODE_VER >= 20 )); then
     info "Node.js $(node -v)"
   else
-    fail "Node.js 18+ required (found $(node -v)). Install via https://nodejs.org"
+    fail "Node.js 20+ required (found $(node -v)). Install via https://nodejs.org"
   fi
 else
   fail "Node.js not found. Install via https://nodejs.org"
@@ -54,10 +50,10 @@ else
   info "Rust installed"
 fi
 
-# --- Linux system dependencies ---
-if [[ "$OS" == "linux" ]]; then
-  echo
-  echo "Installing system dependencies..."
+# --- System dependencies ---
+echo
+echo "Installing system dependencies..."
+{
 
   if command -v apt &>/dev/null; then
     sudo apt update -qq
@@ -116,17 +112,7 @@ if [[ "$OS" == "linux" ]]; then
       echo "  sudo usermod -aG input \$USER && newgrp input"
     fi
   fi
-fi
-
-# --- macOS dependencies ---
-if [[ "$OS" == "macos" ]]; then
-  if ! xcode-select -p &>/dev/null; then
-    warn "Installing Xcode command line tools..."
-    xcode-select --install
-  else
-    info "Xcode CLI tools"
-  fi
-fi
+}
 
 # --- npm install ---
 echo
@@ -142,17 +128,15 @@ if [[ "$INSTALL_MODE" == true ]]; then
   npm run build 2>&1 | tail -5
   info "Build complete"
 
-  if [[ "$OS" == "linux" ]]; then
-    DEB=$(find apps/desktop/src-tauri/target/release/bundle/deb -name "*.deb" 2>/dev/null | head -1)
-    if [[ -n "$DEB" ]]; then
-      echo
-      echo "Installing .deb package..."
-      sudo dpkg -i "$DEB"
-      info "Installed! Find 'Voice' in your application launcher."
-    else
-      warn "No .deb package found. You can run directly:"
-      echo "  apps/desktop/src-tauri/target/release/voice-dictation"
-    fi
+  DEB=$(find apps/desktop/src-tauri/target/release/bundle/deb -name "*.deb" 2>/dev/null | head -1)
+  if [[ -n "$DEB" ]]; then
+    echo
+    echo "Installing .deb package..."
+    sudo dpkg -i "$DEB"
+    info "Installed! Find 'Voice' in your application launcher."
+  else
+    warn "No .deb package found. You can run directly:"
+    echo "  apps/desktop/src-tauri/target/release/voice"
   fi
 
   echo
@@ -160,7 +144,7 @@ if [[ "$INSTALL_MODE" == true ]]; then
   echo -e "${GREEN}Installed!${NC}"
   echo
   echo "Open 'Voice' from your app launcher,"
-  echo "or run: voice-dictation"
+  echo "or run: voice"
   echo
   echo "Press Alt+D to dictate!"
 else

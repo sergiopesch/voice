@@ -46,6 +46,11 @@ fn transcribe_audio(
         return Err("No audio samples provided".to_string());
     }
 
+    // Reject audio longer than 5 minutes at 16kHz (4.8M samples)
+    if samples.len() > 16000 * 300 {
+        return Err("Audio too long (max 5 minutes)".to_string());
+    }
+
     let model_path = transcribe::default_model_path()?;
     if !model_path.exists() {
         return Err("Model not downloaded. Please download the model first.".to_string());
@@ -75,6 +80,14 @@ fn set_recording_state(app: tauri::AppHandle, recording: bool) -> Result<(), Str
 
 #[tauri::command]
 fn insert_text(text: String, strategy: String) -> Result<InsertResult, String> {
+    if text.is_empty() {
+        return Err("No text to insert".to_string());
+    }
+    // Reject unreasonably large text to prevent shell argument overflow
+    if text.len() > 100_000 {
+        return Err("Text too long for insertion (max 100KB)".to_string());
+    }
+
     let result = insertion::insert_text(&text, &strategy)?;
     Ok(InsertResult {
         strategy: format!("{:?}", result.strategy).to_lowercase(),
@@ -114,7 +127,13 @@ fn ensure_model_downloaded() -> Result<(), String> {
     eprintln!("Downloading speech model (one-time, ~142 MB)...");
     let url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin";
 
-    let response = reqwest::blocking::get(url)
+    let client = reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(300))
+        .connect_timeout(std::time::Duration::from_secs(30))
+        .build()
+        .map_err(|e| format!("HTTP client error: {e}"))?;
+
+    let response = client.get(url).send()
         .map_err(|e| format!("Download failed: {e}"))?;
 
     if !response.status().is_success() {
@@ -154,7 +173,13 @@ pub fn eval_toggle(app_handle: &tauri::AppHandle) {
 fn register_global_shortcut(app: &tauri::App) {
     use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
 
-    let shortcut: Shortcut = "Alt+D".parse().expect("valid shortcut");
+    let shortcut: Shortcut = match "Alt+D".parse() {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("Failed to parse shortcut Alt+D: {e}");
+            return;
+        }
+    };
     let handle = app.handle().clone();
 
     let _ = app.global_shortcut().unregister(shortcut);
@@ -313,6 +338,12 @@ pub fn run() {
 
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|_app, event| {
+            if let tauri::RunEvent::Exit = event {
+                // Clean up the Unix socket on exit
+                let _ = std::fs::remove_file(socket_path());
+            }
+        });
 }

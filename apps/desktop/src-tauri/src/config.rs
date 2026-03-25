@@ -42,15 +42,9 @@ impl Default for AppConfig {
 
 impl AppConfig {
     fn config_path() -> Result<PathBuf, Box<dyn std::error::Error>> {
-        let config_dir = if cfg!(target_os = "macos") {
-            dirs::home_dir()
-                .ok_or("Cannot find home directory")?
-                .join("Library/Application Support/Voice")
-        } else {
-            dirs::config_dir()
-                .ok_or("Cannot find config directory")?
-                .join("voice")
-        };
+        let config_dir = dirs::config_dir()
+            .ok_or("Cannot find config directory (XDG_CONFIG_HOME)")?
+            .join("voice");
         fs::create_dir_all(&config_dir)?;
         Ok(config_dir.join("config.json"))
     }
