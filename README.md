@@ -15,20 +15,21 @@
 
 ---
 
-### Quick install (pre-built, ~5 seconds)
+### Install (pre-built, ~5 seconds)
 
 ```bash
-wget https://github.com/sergiopesch/voice/releases/download/v0.1.0/Voice_0.1.0_amd64.deb
-sudo dpkg -i Voice_0.1.0_amd64.deb
+curl -fsSL https://raw.githubusercontent.com/sergiopesch/voice/master/scripts/install.sh | bash
 ```
 
-### Build from source (~2 minutes)
+<details>
+<summary>Build from source (~2 minutes)</summary>
 
 ```bash
 git clone https://github.com/sergiopesch/voice.git
 cd voice
 ./scripts/setup.sh --install
 ```
+</details>
 
 ## What It Does
 
