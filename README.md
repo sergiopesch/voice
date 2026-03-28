@@ -15,14 +15,16 @@
 
 ---
 
-### Install (pre-built, ~5 seconds)
+## Install
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/sergiopesch/voice/master/scripts/install.sh | bash
 ```
 
+That's it. The installer checks your system, downloads the app, and walks you through setup.
+
 <details>
-<summary>Build from source (~2 minutes)</summary>
+<summary>Build from source instead</summary>
 
 ```bash
 git clone https://github.com/sergiopesch/voice.git
@@ -31,131 +33,110 @@ cd voice
 ```
 </details>
 
-## What It Does
-
-- **Speak to type** — press a hotkey, speak naturally, text appears in any app
-- **Fully local** — audio never leaves your machine, no cloud, no account
-- **System tray** — mic icon turns red while recording, shows download progress
-- **Smart insertion** — types directly into the focused app, clipboard fallback with notification
-- **Configurable hotkey** — default Alt+D, change in `~/.config/voice/config.json`
-
-> Tested on Ubuntu. Likely to work on similar Debian/Ubuntu-based systems. Other distributions are experimental.
-
 ## How It Works
 
 ```
-Press hotkey → Mic captures audio → whisper.cpp transcribes locally → Text inserted at cursor
+┌─────────┐    ┌─────────────┐    ┌─────────────┐    ┌──────────────┐
+│  Alt+D  │───>│  Microphone  │───>│  whisper.cpp │───>│  Text typed  │
+│ (hotkey)│    │  captures    │    │  transcribes │    │  at cursor   │
+│         │<───│  your voice  │    │  locally     │    │              │
+│  Alt+D  │    └─────────────┘    └─────────────┘    └──────────────┘
+│ (stop)  │
+└─────────┘         Your machine — nothing leaves it.
 ```
 
-1. Open **Voice** from your app launcher — it appears in the **system tray**
-2. Press **Alt+D** — speak — press **Alt+D** again
-3. Text is transcribed locally and typed where your cursor is
+1. **Launch** — open Voice from your app launcher. It lives in the system tray.
+2. **Press Alt+D** — start speaking.
+3. **Press Alt+D again** — text appears wherever your cursor is.
 
-No visible window. Everything runs on your machine. First launch downloads the speech model (~142 MB, one-time, SHA256-verified). After that, fully offline.
+No window. No account. No cloud. Everything runs locally.
+
+> First launch downloads the speech model (~142 MB, one-time). After that, fully offline.
+
+## Features
+
+| Feature | Details |
+|---------|---------|
+| **Local transcription** | whisper.cpp runs on your machine — audio never leaves it |
+| **Global hotkey** | Works from any app. Default `Alt+D`, customizable |
+| **System tray** | Mic icon turns red while recording |
+| **Smart insertion** | Types directly into focused app, clipboard fallback |
+| **No account** | No sign-up, no API key, no subscription |
 
 ## Requirements
 
-The setup script handles most of this, but for reference:
+The installer handles everything, but for reference:
 
-| Requirement | Details |
-|---|---|
-| **Runtime** | Node.js 20+, Rust |
-| **Text insertion (Wayland)** | ydotool, wl-clipboard; user in `input` group |
-| **Text insertion (X11)** | xdotool, xclip |
-| **Audio** | PulseAudio or PipeWire |
+| What | Why |
+|------|-----|
+| Ubuntu / Debian | Primary supported platform |
+| PulseAudio or PipeWire | Microphone access |
+| Wayland: `ydotool`, `wl-clipboard` | Text insertion + clipboard |
+| X11: `xdotool`, `xclip` | Text insertion + clipboard |
 
-<details>
-<summary>Manual dependency install (Ubuntu/Debian)</summary>
-
-**System libraries**:
-```bash
-sudo apt install pkg-config libglib2.0-dev libsoup-3.0-dev \
-  libjavascriptcoregtk-4.1-dev libwebkit2gtk-4.1-dev \
-  libayatana-appindicator3-dev
-```
-
-**Wayland text insertion**:
-```bash
-sudo apt install ydotool wl-clipboard
-sudo usermod -aG input $USER  # then log out/in
-# ydotool v1.0+ also requires ydotoold running:
-ydotoold &  # or: systemctl --user enable --now ydotoold
-```
-
-**X11 text insertion**:
-```bash
-sudo apt install xdotool xclip
-```
-</details>
+> Other Linux distributions may work but are not officially tested.
 
 ## Configuration
 
-Settings in `~/.config/voice/config.json`:
+Settings are in `~/.config/voice/config.json`. The installer lets you pick your hotkey, or change it later:
 
-```jsonc
+```json
 {
   "hotkey": "Alt+D",
-  "selectedMic": null,
   "insertionStrategy": "auto"
 }
 ```
 
+You can also change the hotkey from the **system tray icon** menu.
+
+<details>
+<summary>All settings</summary>
+
 | Setting | Default | Options |
 |---------|---------|---------|
-| `hotkey` | `Alt+D` | Any Tauri-compatible shortcut |
-| `selectedMic` | `null` (system default) | Device ID string |
+| `hotkey` | `Alt+D` | Any key combo (e.g. `Ctrl+Shift+V`, `Super+D`) |
+| `selectedMic` | `null` | Specific mic device ID, or null for system default |
 | `insertionStrategy` | `auto` | `auto`, `clipboard`, `type-simulation` |
 
-## Architecture
-
-```
-apps/desktop/
-  src/                  React frontend (hooks, store, types)
-    hooks/              useDictation (AudioWorklet capture), useGlobalShortcut
-    __tests__/          Vitest unit tests
-  public/               AudioWorklet processor
-  src-tauri/            Rust backend
-    src/lib.rs          App setup, hotkey, commands, model download
-    src/tray.rs         System tray icon + menu
-    src/transcribe.rs   whisper.cpp integration
-    src/insertion.rs    Text insertion (ydotool/xdotool/clipboard)
-    src/config.rs       Settings persistence
-```
-
-**Stack**: Tauri 2 · React 19 · Vite · TypeScript · Zustand · whisper.cpp
-
-**Audio pipeline**: getUserMedia → AudioWorklet → base64 IPC → whisper-rs → text
-
-**Insertion**: ydotool (Wayland) / xdotool (X11) → clipboard fallback → desktop notification
+</details>
 
 ## Development
 
 ```bash
-./scripts/setup.sh    # install deps only (no build)
-npm run dev           # run in dev mode with hot reload
-npm run build         # production build
-npm run check         # TypeScript type-check
-npm run lint          # ESLint
-npm test              # frontend tests (Vitest)
-cargo test            # Rust unit tests (from apps/desktop/src-tauri/)
+git clone https://github.com/sergiopesch/voice.git
+cd voice
+./scripts/setup.sh       # install deps
+npm run dev              # dev mode with hot reload
+npm run check            # type-check
+npm run lint             # lint
+npm test                 # frontend tests
+cargo test               # rust tests (from apps/desktop/src-tauri/)
 ```
 
-## Debugging
+<details>
+<summary>Project structure</summary>
 
-```bash
-RUST_LOG=debug npm run dev    # verbose logging
-RUST_LOG=warn npm run dev     # warnings and errors only
+```
+apps/desktop/
+  src/                  React + TypeScript frontend
+  public/               AudioWorklet processor
+  src-tauri/            Rust backend
+    src/lib.rs          App setup, hotkey, commands
+    src/tray.rs         System tray
+    src/transcribe.rs   whisper.cpp integration
+    src/insertion.rs    Text insertion
+    src/config.rs       Settings
 ```
 
-## CI
+**Stack**: Tauri 2 · React 19 · TypeScript · Zustand · whisper.cpp
 
-GitHub Actions runs on every push and PR: TypeScript check, ESLint, Vitest, cargo check, cargo clippy, cargo test.
+</details>
 
 ## Known Limitations
 
-- **Wayland insertion** depends on ydotool and may require `ydotoold` running or `input` group membership. Behaviour varies by compositor.
-- **First launch requires internet** to download the whisper model (~142 MB). After that, fully offline.
-- Only tested on Ubuntu. Other distributions and desktop environments may have different behaviour.
+- **Wayland text insertion** depends on `ydotool` and may vary by compositor.
+- **First launch needs internet** to download the model (~142 MB). After that, fully offline.
+- **Ubuntu is the tested platform.** Other distros may behave differently.
 
 ## License
 
