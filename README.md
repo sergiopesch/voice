@@ -15,14 +15,14 @@
 
 ---
 
-### Quick install (pre-built)
+### Quick install (pre-built, ~5 seconds)
 
 ```bash
-wget https://github.com/sergiopesch/voice/releases/latest/download/Voice_0.1.0_amd64.deb
+wget https://github.com/sergiopesch/voice/releases/download/v0.1.0/Voice_0.1.0_amd64.deb
 sudo dpkg -i Voice_0.1.0_amd64.deb
 ```
 
-### Build from source
+### Build from source (~2 minutes)
 
 ```bash
 git clone https://github.com/sergiopesch/voice.git
