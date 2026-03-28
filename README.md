@@ -28,10 +28,10 @@ No visible window. Everything runs on your machine.
 
 - **Fully local** — audio never leaves your machine
 - **No sign-in** — works immediately
-- **Global hotkey** (Alt+D) — works from any application
-- **System tray** — mic icon turns red while recording
-- **Local ASR** — whisper.cpp (base.en model)
-- **Smart insertion** — types into the focused app, clipboard fallback
+- **Configurable hotkey** (default Alt+D) — works from any application
+- **System tray** — mic icon turns red while recording, download progress on first launch
+- **Local ASR** — whisper.cpp (base.en model), SHA256-verified download
+- **Smart insertion** — types into the focused app, clipboard fallback with desktop notification on failure
 
 ## Requirements
 
@@ -58,6 +58,8 @@ sudo apt install pkg-config libglib2.0-dev libsoup-3.0-dev \
 ```bash
 sudo apt install ydotool wl-clipboard
 sudo usermod -aG input $USER  # then log out/in
+# ydotool v1.0+ also requires ydotoold running:
+ydotoold &  # or: systemctl --user enable --now ydotoold
 ```
 
 **X11 text insertion**:
@@ -73,6 +75,9 @@ sudo apt install xdotool xclip
 npm run dev           # run in dev mode with hot reload
 npm run build         # production build
 npm run check         # TypeScript type-check
+npm run lint          # ESLint
+npm test              # run all tests
+cargo test            # Rust unit tests (from apps/desktop/src-tauri/)
 ```
 
 ## Architecture
@@ -91,6 +96,10 @@ apps/desktop/
 ## Stack
 
 Tauri 2 · React 19 · Vite · TypeScript · Tailwind CSS 4 · Zustand · whisper.cpp
+
+## CI
+
+GitHub Actions runs on every push and PR: TypeScript check, ESLint, Vitest, cargo check, clippy, and cargo test.
 
 ## Known Limitations
 

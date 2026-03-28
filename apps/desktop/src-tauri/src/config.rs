@@ -68,3 +68,47 @@ impl AppConfig {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_config_has_expected_values() {
+        let config = AppConfig::default();
+        assert_eq!(config.hotkey, "Alt+D");
+        assert!(config.selected_mic.is_none());
+        assert!(matches!(config.insertion_strategy, InsertionStrategy::Auto));
+    }
+
+    #[test]
+    fn config_serialization_round_trip() {
+        let config = AppConfig {
+            hotkey: "Ctrl+Shift+V".to_string(),
+            selected_mic: Some("test-mic".to_string()),
+            insertion_strategy: InsertionStrategy::Clipboard,
+        };
+        let json = serde_json::to_string(&config).unwrap();
+        let parsed: AppConfig = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed.hotkey, "Ctrl+Shift+V");
+        assert_eq!(parsed.selected_mic, Some("test-mic".to_string()));
+        assert!(matches!(parsed.insertion_strategy, InsertionStrategy::Clipboard));
+    }
+
+    #[test]
+    fn config_deserializes_with_defaults() {
+        let json = r#"{}"#;
+        let config: AppConfig = serde_json::from_str(json).unwrap();
+        assert_eq!(config.hotkey, "Alt+D");
+        assert!(matches!(config.insertion_strategy, InsertionStrategy::Auto));
+    }
+
+    #[test]
+    fn insertion_strategy_serializes_kebab_case() {
+        let json = serde_json::to_string(&InsertionStrategy::TypeSimulation).unwrap();
+        assert_eq!(json, r#""type-simulation""#);
+
+        let json = serde_json::to_string(&InsertionStrategy::Auto).unwrap();
+        assert_eq!(json, r#""auto""#);
+    }
+}

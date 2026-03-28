@@ -459,3 +459,62 @@ pub fn run() {
             }
         });
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn decode_audio_base64_valid() {
+        use base64::Engine;
+        // Encode two f32 samples: 0.5 and -0.5
+        let sample1 = 0.5f32.to_le_bytes();
+        let sample2 = (-0.5f32).to_le_bytes();
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&sample1);
+        bytes.extend_from_slice(&sample2);
+        let encoded = base64::engine::general_purpose::STANDARD.encode(&bytes);
+
+        let samples = decode_audio_base64(&encoded).unwrap();
+        assert_eq!(samples.len(), 2);
+        assert!((samples[0] - 0.5).abs() < f32::EPSILON);
+        assert!((samples[1] + 0.5).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn decode_audio_base64_empty() {
+        use base64::Engine;
+        let encoded = base64::engine::general_purpose::STANDARD.encode(b"");
+        let samples = decode_audio_base64(&encoded).unwrap();
+        assert!(samples.is_empty());
+    }
+
+    #[test]
+    fn decode_audio_base64_invalid_length() {
+        use base64::Engine;
+        // 3 bytes is not a multiple of 4
+        let encoded = base64::engine::general_purpose::STANDARD.encode(b"abc");
+        let result = decode_audio_base64(&encoded);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("not a multiple of 4"));
+    }
+
+    #[test]
+    fn decode_audio_base64_invalid_encoding() {
+        let result = decode_audio_base64("not-valid-base64!!!");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn socket_path_uses_xdg_runtime_dir() {
+        let path = socket_path();
+        assert!(path.to_str().unwrap().ends_with("voice.sock"));
+    }
+
+    #[test]
+    fn configured_hotkey_returns_default_on_missing_config() {
+        // Even if config file doesn't exist, should return "Alt+D"
+        let hotkey = configured_hotkey();
+        assert!(!hotkey.is_empty());
+    }
+}

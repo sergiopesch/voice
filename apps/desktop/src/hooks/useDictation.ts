@@ -213,7 +213,7 @@ export function useDictation() {
       const strategy = useStore.getState().config?.insertionStrategy ?? "auto";
       try {
         await insertText(transcript, strategy);
-      } catch (insertErr) {
+      } catch {
         showNotification(
           "Text insertion failed",
           "Your transcript is in the clipboard — paste with Ctrl+V",

@@ -152,3 +152,25 @@ fn clipboard_paste(text: &str) -> Result<(), String> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn active_strategy_serializes_kebab_case() {
+        let json = serde_json::to_string(&ActiveStrategy::Ydotool).unwrap();
+        assert_eq!(json, r#""ydotool""#);
+
+        let json = serde_json::to_string(&ActiveStrategy::Xdotool).unwrap();
+        assert_eq!(json, r#""xdotool""#);
+
+        let json = serde_json::to_string(&ActiveStrategy::Clipboard).unwrap();
+        assert_eq!(json, r#""clipboard""#);
+    }
+
+    #[test]
+    fn is_wayland_returns_bool() {
+        let _ = is_wayland();
+    }
+}

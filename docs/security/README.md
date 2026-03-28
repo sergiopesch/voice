@@ -30,6 +30,8 @@ The app runs entirely locally with no authentication, no cloud accounts, and no 
 - **Clipboard preservation**: Original clipboard contents restored after fallback insertion (only when prior content was text and save succeeded)
 - **Socket security**: Unix socket restricted to owner (0600 permissions)
 - **Concurrency safety**: Transcription uses try_lock to fail fast if already in progress
+- **Atomic downloads**: Model written to .tmp then renamed, preventing corrupt partial files
+- **Structured logging**: No audio content logged, level-filtered output via env_logger
 
 ## Data Storage Locations
 | Data | Location |

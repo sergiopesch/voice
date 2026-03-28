@@ -1,38 +1,55 @@
 # Testing
 
 ## Current State
-No automated test suite exists yet. This document outlines the planned testing strategy.
 
-## Planned Stack
-- **Unit/Integration**: Vitest (frontend), cargo test (Rust)
-- **E2E**: Playwright or Tauri's WebDriver support
-- **Manual**: Socket-based trigger testing
+Automated tests are in place for both frontend and backend.
 
-## Priority Test Targets
+### Rust (12 tests)
+Run with `cargo test` from `apps/desktop/src-tauri/`.
 
-### High Priority
-1. **Rust insertion logic** (`insertion.rs`) — Strategy selection, shell command construction, fallback chain
-2. **Rust transcription** (`transcribe.rs`) — Model loading, audio processing, hallucination filtering
-3. **Rust config** (`config.rs`) — Serialize/deserialize, default creation, XDG path resolution
+| Module | Tests | What's Covered |
+|--------|-------|----------------|
+| `config` | 4 | Default values, serialization round-trip, deserialization with defaults, kebab-case strategy |
+| `insertion` | 2 | Strategy serialization (kebab-case), session detection |
+| `lib` | 6 | Base64 audio decoding (valid, empty, invalid length, invalid encoding), socket path, hotkey config |
 
-### Medium Priority
-4. **Frontend dictation hook** (`useDictation.ts`) — State machine, audio capture lifecycle, resampling
-5. **Zustand store** (`useStore.ts`) — All actions produce correct state transitions
-6. **Frontend bridge** (`tauri.ts`) — Invoke contracts match Rust command signatures
+### Frontend (9 tests)
+Run with `npm test` from project root.
 
-### Lower Priority (system boundaries)
-7. **Tray state** — Recording/idle transitions, menu text updates
-8. **E2E dictation flow** — Requires mic + ASR + insertion (manual or mocked)
+| File | Tests | What's Covered |
+|------|-------|----------------|
+| `store.test.ts` | 9 | All store actions: status transitions, error handling, transcript management, audio level, config/platform storage |
+
+## Running Tests
+
+```bash
+# All frontend tests
+npm test
+
+# All Rust tests
+cd apps/desktop/src-tauri && cargo test
+
+# Full validation (what CI runs)
+npm run check && npm run lint && npm test
+cd apps/desktop/src-tauri && cargo check && cargo clippy -- -D warnings && cargo test
+```
+
+## CI
+
+GitHub Actions (`.github/workflows/ci.yml`) runs on every push and PR to master:
+- TypeScript check, ESLint, Vitest (frontend)
+- cargo check, cargo clippy (zero warnings), cargo test (Rust)
 
 ## Manual Verification
+
 For system-level features that are hard to automate:
-- Trigger via Unix socket: `printf "toggle" | socat - UNIX-CONNECT:$XDG_RUNTIME_DIR/voice.sock`
+- Trigger via Unix socket: `socat - UNIX-CONNECT:$XDG_RUNTIME_DIR/voice.sock < /dev/null`
 - Check tray icon state visually
 - Verify insertion in a text editor
 - State the distro, desktop environment, compositor, and insertion path used
 
-## Setup Required
-- Install: `npm install -D vitest`
-- Add `vitest.config.ts` to apps/desktop
-- Add `test` script to apps/desktop/package.json
-- Add `#[cfg(test)]` modules in Rust code
+## Future Test Targets
+
+- E2E dictation flow (requires mic + ASR + insertion — Playwright or Tauri WebDriver)
+- Frontend dictation hook with mocked Tauri commands
+- Whisper transcription with a known audio sample

@@ -25,10 +25,38 @@ The app detects session type via `XDG_SESSION_TYPE`:
 
 ## Wayland Caveats
 - ydotool works via uinput (kernel-level, compositor-independent)
-- Requires user in `input` group: `sudo usermod -aG input $USER`
-- `ydotoold` may need to be running for best performance
+- Requires user in `input` group: `sudo usermod -aG input $USER` (then log out and back in)
 - Clipboard fallback uses wl-copy + ydotool Ctrl+V simulation
 - Behaviour may vary by compositor (GNOME, KDE, Sway)
+
+### ydotoold (ydotool daemon)
+
+ydotool v1.0+ requires the `ydotoold` daemon to be running. On older versions (0.x), ydotool communicates with uinput directly.
+
+**Check if ydotoold is needed:**
+```bash
+ydotool type "test"  # If this errors with "socket not found", you need ydotoold
+```
+
+**Start ydotoold:**
+```bash
+# One-time (current session)
+ydotoold &
+
+# Persistent (systemd user service, if available)
+systemctl --user enable --now ydotoold
+```
+
+**If ydotoold is not available as a service:**
+```bash
+# Add to ~/.bashrc or ~/.profile for auto-start
+pgrep -x ydotoold > /dev/null || ydotoold &
+```
+
+**Troubleshooting:**
+- `Permission denied`: ensure user is in `input` group and has uinput access
+- `Socket not found`: ydotoold is not running — start it manually
+- If ydotool type-simulation fails, Voice falls back to clipboard paste automatically
 
 ## X11
 - xdotool works via X11 protocol (compositor-independent)
