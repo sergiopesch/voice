@@ -13,8 +13,16 @@ export async function getPlatformInfo(): Promise<PlatformInfo> {
   return invoke<PlatformInfo>("get_platform_info");
 }
 
-export async function transcribeAudio(samples: number[]): Promise<string> {
-  return invoke<string>("transcribe_audio", { samples });
+export async function transcribeAudio(samples: Float32Array): Promise<string> {
+  // Send audio as base64-encoded little-endian f32 bytes instead of a JSON number array.
+  // This is ~60% smaller and orders of magnitude faster to serialize/deserialize.
+  const bytes = new Uint8Array(samples.buffer, samples.byteOffset, samples.byteLength);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 8192) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + 8192));
+  }
+  const audioBase64 = btoa(binary);
+  return invoke<string>("transcribe_audio", { audioBase64 });
 }
 
 export interface InsertResult {

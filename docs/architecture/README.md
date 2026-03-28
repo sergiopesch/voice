@@ -24,7 +24,7 @@ apps/desktop/           Tauri application
 ## Data Flow
 
 1. **Audio Capture**: WebView `getUserMedia` -> ScriptProcessorNode -> Float32Array samples
-2. **ASR**: Samples sent to Rust via Tauri invoke -> whisper-rs -> transcript string
+2. **ASR**: Float32Array bytes base64-encoded, sent to Rust via Tauri invoke, decoded to `Vec<f32>` -> whisper-rs -> transcript string
 3. **Insertion**: Transcript -> ydotool/xdotool type simulation or clipboard paste
 4. **Fallback**: If direct typing fails, text is placed on clipboard and Ctrl+V is simulated
 
@@ -35,7 +35,7 @@ apps/desktop/           Tauri application
 | `get_config` | Frontend -> Rust | Load persisted settings |
 | `save_config` | Frontend -> Rust | Persist settings |
 | `get_platform_info` | Frontend -> Rust | Session type, desktop env |
-| `transcribe_audio` | Frontend -> Rust | Send samples, get transcript |
+| `transcribe_audio` | Frontend -> Rust | Send base64-encoded audio, get transcript |
 | `insert_text` | Frontend -> Rust | Insert transcript into active app |
 | `set_recording_state` | Frontend -> Rust | Update tray icon and menu |
 | `window.eval()` | Rust -> Frontend | Toggle dictation from hotkey |

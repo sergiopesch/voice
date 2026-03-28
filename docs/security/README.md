@@ -20,12 +20,16 @@ The app runs entirely locally with no authentication, no cloud accounts, and no 
 
 ## Current Protections
 - **Minimal network**: Only first-run model download (HTTPS, with timeouts)
+- **Model integrity**: SHA256 verification of downloaded model before use
 - **No auth**: No credentials to steal
 - **Tauri CSP**: Restrictive content security policy, no remote scripts
+- **Scoped permissions**: WebView permission grants restricted to UserMedia (microphone) only
 - **Input validation**: Audio length limit (5 min), text size limit (100KB), empty input rejected
 - **Local storage only**: Config in XDG dirs, no cloud sync
 - **Shell safety**: Text passed as arguments (not interpolated), `--` separators used
-- **Clipboard preservation**: Original clipboard contents restored after fallback insertion
+- **Clipboard preservation**: Original clipboard contents restored after fallback insertion (only when prior content was text and save succeeded)
+- **Socket security**: Unix socket restricted to owner (0600 permissions)
+- **Concurrency safety**: Transcription uses try_lock to fail fast if already in progress
 
 ## Data Storage Locations
 | Data | Location |
@@ -48,6 +52,6 @@ The app runs entirely locally with no authentication, no cloud accounts, and no 
 | Input group (Wayland) | evdev hotkey listener, ydotool access |
 
 ## Known Gaps
-- [ ] No model file integrity verification (checksum)
+- [x] ~~No model file integrity verification~~ — SHA256 verified on download
 - [ ] Text insertion could interact with sensitive input fields
 - [ ] ydotool requires uinput access which is a broad input privilege

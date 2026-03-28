@@ -37,11 +37,32 @@ pub struct PlatformInfo {
 
 // --- Transcription ---
 
+/// Decode base64-encoded little-endian f32 audio samples.
+fn decode_audio_base64(encoded: &str) -> Result<Vec<f32>, String> {
+    use base64::Engine;
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(encoded)
+        .map_err(|e| format!("Invalid audio data: {e}"))?;
+
+    if bytes.len() % 4 != 0 {
+        return Err("Audio data length is not a multiple of 4 bytes".to_string());
+    }
+
+    let samples: Vec<f32> = bytes
+        .chunks_exact(4)
+        .map(|c| f32::from_le_bytes([c[0], c[1], c[2], c[3]]))
+        .collect();
+
+    Ok(samples)
+}
+
 #[tauri::command]
 fn transcribe_audio(
-    samples: Vec<f32>,
+    audio_base64: String,
     state: tauri::State<'_, WhisperMutex>,
 ) -> Result<String, String> {
+    let samples = decode_audio_base64(&audio_base64)?;
+
     if samples.is_empty() {
         return Err("No audio samples provided".to_string());
     }
@@ -57,8 +78,8 @@ fn transcribe_audio(
     }
 
     let mut whisper = state
-        .lock()
-        .map_err(|e| format!("Failed to lock whisper state: {e}"))?;
+        .try_lock()
+        .map_err(|_| "Transcription already in progress".to_string())?;
 
     whisper.load_model(&model_path)?;
     whisper.transcribe(&samples)
@@ -125,10 +146,11 @@ fn grant_webview_permissions(app: &tauri::App) {
 
 // --- Auto-download model on first launch ---
 
+const MODEL_SHA256: &str = "a03779c86df3323075f5e796cb2ce5029f00ec8869eee3fdfb897afe36c6d002";
+
 fn ensure_model_downloaded() -> Result<(), String> {
     let path = transcribe::default_model_path()?;
     if path.exists() {
-        eprintln!("Model already downloaded: {}", path.display());
         return Ok(());
     }
 
@@ -156,6 +178,16 @@ fn ensure_model_downloaded() -> Result<(), String> {
         .bytes()
         .map_err(|e| format!("Failed to read response: {e}"))?;
 
+    // Verify integrity before writing
+    use sha2::Digest;
+    let hash = format!("{:x}", sha2::Sha256::digest(&bytes));
+    if hash != MODEL_SHA256 {
+        return Err(format!(
+            "Model integrity check failed (expected {}, got {}). Download may be corrupt.",
+            &MODEL_SHA256[..16], &hash[..16]
+        ));
+    }
+
     // Write to a temporary file first, then atomically rename to the final path.
     // This prevents a partial file from being treated as a valid model if the
     // process is interrupted mid-write.
@@ -165,7 +197,7 @@ fn ensure_model_downloaded() -> Result<(), String> {
     std::fs::rename(&tmp_path, &path)
         .map_err(|e| format!("Failed to finalize model file: {e}"))?;
 
-    eprintln!("Model downloaded: {}", path.display());
+    eprintln!("Model downloaded and verified: {}", path.display());
     Ok(())
 }
 

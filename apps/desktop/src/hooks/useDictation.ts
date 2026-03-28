@@ -156,7 +156,7 @@ export function useDictation() {
     setInterimTranscript("Transcribing...");
 
     try {
-      const transcript = await transcribeAudio(Array.from(merged));
+      const transcript = await transcribeAudio(merged);
       setInterimTranscript("");
 
       if (!transcript || transcript.trim().length === 0) {

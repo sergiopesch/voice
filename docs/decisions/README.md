@@ -48,7 +48,7 @@ Document significant technical decisions here using the format below.
 - **Status**: accepted
 - **Context**: Need microphone capture for dictation; could use Web APIs or native Rust audio libs (cpal, etc.)
 - **Decision**: Use WebView getUserMedia + ScriptProcessorNode for audio capture
-- **Consequences**: Simpler implementation, well-tested browser APIs, automatic device enumeration. Audio data passed to Rust as Float32Array for whisper-rs. Trade-off: requires WebKitGTK window to be "shown" (1x1 transparent off-screen) for getUserMedia to work.
+- **Consequences**: Simpler implementation, well-tested browser APIs, automatic device enumeration. Audio data base64-encoded and passed to Rust for whisper-rs (see ADR-008). Trade-off: requires WebKitGTK window to be "shown" (1x1 transparent off-screen) for getUserMedia to work.
 
 ### ADR-006: Linux-only scope
 - **Date**: 2026-03-25
@@ -63,3 +63,10 @@ Document significant technical decisions here using the format below.
 - **Context**: whisper.cpp outputs verbose per-token debug info (`whisper_full_with_state`) to stderr
 - **Decision**: Set a no-op log callback via `whisper_rs::set_log_callback` and enable `suppress_nst` to prevent non-speech token hallucinations
 - **Consequences**: Clean app output. Hallucination tags like `[Music]` also filtered in post-processing as safety net.
+
+### ADR-008: Base64 audio IPC over JSON number arrays
+- **Date**: 2026-03-28
+- **Status**: accepted
+- **Context**: Audio samples were sent as `Array.from(Float32Array)` through Tauri invoke, resulting in JSON arrays of millions of float numbers. A 5-minute recording produced ~50MB of JSON.
+- **Decision**: Encode Float32Array bytes as base64 on the frontend, decode to `Vec<f32>` in Rust via the `base64` crate.
+- **Consequences**: ~60% smaller IPC payload, far faster serialization/deserialization (single string vs millions of number tokens). Adds `base64` crate dependency (small, widely used). Audio data format is little-endian f32, matching native representation on x86 and ARM Linux.
