@@ -104,7 +104,7 @@ fn num_cpus() -> i32 {
         .min(8)
 }
 
-pub fn model_dir() -> Result<PathBuf, String> {
+fn model_dir() -> Result<PathBuf, String> {
     let data_dir = dirs::data_dir()
         .ok_or("Cannot find data directory (XDG_DATA_HOME)")?
         .join("voice/models");

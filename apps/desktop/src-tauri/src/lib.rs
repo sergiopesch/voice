@@ -90,7 +90,10 @@ fn insert_text(text: String, strategy: String) -> Result<InsertResult, String> {
 
     let result = insertion::insert_text(&text, &strategy)?;
     Ok(InsertResult {
-        strategy: format!("{:?}", result.strategy).to_lowercase(),
+        strategy: serde_json::to_value(&result.strategy)
+            .ok()
+            .and_then(|v| v.as_str().map(String::from))
+            .unwrap_or_else(|| "unknown".to_string()),
         success: result.success,
     })
 }
@@ -107,8 +110,13 @@ fn grant_webview_permissions(app: &tauri::App) {
             let webview: webkit2gtk::WebView = wv.inner().clone().downcast().unwrap();
             webview.connect_permission_request(
                 |_wv, request: &webkit2gtk::PermissionRequest| {
-                    request.allow();
-                    true
+                    // Only auto-grant UserMedia (microphone) requests
+                    if request.downcast_ref::<webkit2gtk::UserMediaPermissionRequest>().is_some() {
+                        request.allow();
+                        true
+                    } else {
+                        false
+                    }
                 },
             );
         }).ok();
@@ -123,6 +131,10 @@ fn ensure_model_downloaded() -> Result<(), String> {
         eprintln!("Model already downloaded: {}", path.display());
         return Ok(());
     }
+
+    // Clean up any leftover partial download from a previous interrupted attempt
+    let tmp_path = path.with_extension("bin.tmp");
+    let _ = std::fs::remove_file(&tmp_path);
 
     eprintln!("Downloading speech model (one-time, ~142 MB)...");
     let url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin";
@@ -144,8 +156,14 @@ fn ensure_model_downloaded() -> Result<(), String> {
         .bytes()
         .map_err(|e| format!("Failed to read response: {e}"))?;
 
-    std::fs::write(&path, &bytes)
-        .map_err(|e| format!("Failed to save model: {e}"))?;
+    // Write to a temporary file first, then atomically rename to the final path.
+    // This prevents a partial file from being treated as a valid model if the
+    // process is interrupted mid-write.
+    std::fs::write(&tmp_path, &bytes)
+        .map_err(|e| format!("Failed to save model (tmp): {e}"))?;
+
+    std::fs::rename(&tmp_path, &path)
+        .map_err(|e| format!("Failed to finalize model file: {e}"))?;
 
     eprintln!("Model downloaded: {}", path.display());
     Ok(())
@@ -158,11 +176,14 @@ pub fn eval_toggle(app_handle: &tauri::AppHandle) {
     if let Some(window) = app_handle.get_webview_window("main") {
         // Window must be "shown" for WebKitGTK to run JS and getUserMedia.
         // We keep it at 1x1 off-screen so user never sees it.
-        let _ = window.show();
-        std::thread::sleep(std::time::Duration::from_millis(100));
-        if let Err(e) = window.eval("window.__toggleDictation && window.__toggleDictation()") {
-            eprintln!("JS eval failed: {e}");
-        }
+        // Spawn so the 100ms delay doesn't block the caller (shortcut/evdev/socket thread).
+        std::thread::spawn(move || {
+            let _ = window.show();
+            std::thread::sleep(std::time::Duration::from_millis(100));
+            if let Err(e) = window.eval("window.__toggleDictation && window.__toggleDictation()") {
+                eprintln!("JS eval failed: {e}");
+            }
+        });
     } else {
         eprintln!("Window 'main' not found");
     }
@@ -216,6 +237,10 @@ fn start_socket_listener(app_handle: tauri::AppHandle) {
             return;
         }
     };
+
+    // Restrict socket to owner only (prevent other users from triggering dictation)
+    use std::os::unix::fs::PermissionsExt;
+    let _ = std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600));
 
     eprintln!("Socket listener ready: {}", path.display());
 
@@ -303,7 +328,6 @@ fn start_hotkey_listener(app_handle: tauri::AppHandle) {
     });
 }
 
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())

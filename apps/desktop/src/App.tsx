@@ -6,8 +6,8 @@ import { useDictation } from "@/hooks/useDictation";
 
 export function App() {
   const { setConfig, setPlatform, setError } = useStore();
-  const { moveWindowOffScreen } = useDictation();
-  useGlobalShortcut();
+  const { toggle, moveWindowOffScreen } = useDictation();
+  useGlobalShortcut(toggle);
 
   useEffect(() => {
     async function init() {

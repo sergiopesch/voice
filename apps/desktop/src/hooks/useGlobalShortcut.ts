@@ -1,8 +1,6 @@
 import { useEffect, useRef } from "react";
-import { useDictation } from "@/hooks/useDictation";
 
-export function useGlobalShortcut() {
-  const { toggle } = useDictation();
+export function useGlobalShortcut(toggle: () => void) {
   const toggleRef = useRef(toggle);
   toggleRef.current = toggle;
 

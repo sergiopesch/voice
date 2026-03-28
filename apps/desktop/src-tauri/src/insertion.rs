@@ -1,3 +1,4 @@
+use std::io::Write;
 use std::process::Command;
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -13,40 +14,29 @@ pub struct InsertionResult {
     pub success: bool,
 }
 
-pub fn detect_session() -> String {
-    std::env::var("XDG_SESSION_TYPE").unwrap_or_default()
+fn is_wayland() -> bool {
+    std::env::var("XDG_SESSION_TYPE").unwrap_or_default() == "wayland"
 }
 
 pub fn insert_text(text: &str, preferred: &str) -> Result<InsertionResult, String> {
-    let session = detect_session();
-
     match preferred {
         "auto" | "type-simulation" => {
-            // type-simulation and auto both try direct typing first, then clipboard fallback.
-            // On Wayland: ydotool works via uinput (kernel-level, compositor-independent)
-            // On X11: xdotool works via X11 protocol
-            if session == "wayland" {
+            if is_wayland() {
                 if try_ydotool(text) {
                     return Ok(InsertionResult { strategy: ActiveStrategy::Ydotool, success: true });
                 }
                 eprintln!("ydotool type failed, falling back to clipboard paste");
-                clipboard_paste_wayland(text)?;
-                Ok(InsertionResult { strategy: ActiveStrategy::Clipboard, success: true })
             } else {
                 if try_xdotool(text) {
                     return Ok(InsertionResult { strategy: ActiveStrategy::Xdotool, success: true });
                 }
                 eprintln!("xdotool type failed, falling back to clipboard paste");
-                clipboard_paste_x11(text)?;
-                Ok(InsertionResult { strategy: ActiveStrategy::Clipboard, success: true })
             }
+            clipboard_paste(text)?;
+            Ok(InsertionResult { strategy: ActiveStrategy::Clipboard, success: true })
         }
         _ => {
-            if session == "wayland" {
-                clipboard_paste_wayland(text)?;
-            } else {
-                clipboard_paste_x11(text)?;
-            }
+            clipboard_paste(text)?;
             Ok(InsertionResult { strategy: ActiveStrategy::Clipboard, success: true })
         }
     }
@@ -75,96 +65,87 @@ fn try_xdotool(text: &str) -> bool {
         .unwrap_or(false)
 }
 
-fn clipboard_paste_wayland(text: &str) -> Result<(), String> {
-    // Save current clipboard
-    let old = Command::new("wl-paste").arg("--no-newline").output().ok();
-
-    // Set new clipboard content
-    let mut child = Command::new("wl-copy")
+/// Pipe bytes into a command's stdin. Returns error description on failure.
+fn pipe_to_command(cmd: &str, args: &[&str], data: &[u8]) -> Result<(), String> {
+    let mut child = Command::new(cmd)
+        .args(args)
         .stdin(std::process::Stdio::piped())
         .spawn()
-        .map_err(|e| format!("Failed to run wl-copy: {e}"))?;
+        .map_err(|e| format!("Failed to run {cmd}: {e}"))?;
 
     if let Some(stdin) = child.stdin.as_mut() {
-        use std::io::Write;
-        stdin.write_all(text.as_bytes())
-            .map_err(|e| format!("Failed to write to wl-copy: {e}"))?;
+        stdin.write_all(data)
+            .map_err(|e| format!("Failed to write to {cmd}: {e}"))?;
     }
-    child.wait().map_err(|e| format!("wl-copy failed: {e}"))?;
-
-    // Simulate Ctrl+V via ydotool
-    std::thread::sleep(std::time::Duration::from_millis(50));
-    let paste_ok = Command::new("ydotool")
-        .args(["key", "29:1", "47:1", "47:0", "29:0"]) // Ctrl down, V down, V up, Ctrl up
-        .status()
-        .map(|s| s.success())
-        .unwrap_or(false);
-
-    if !paste_ok {
-        eprintln!("Warning: ydotool Ctrl+V failed — text is in clipboard, paste manually with Ctrl+V");
-    }
-
-    // Restore clipboard after a delay
-    std::thread::sleep(std::time::Duration::from_millis(100));
-    if let Some(old_output) = old {
-        if !old_output.stdout.is_empty() {
-            let mut restore = Command::new("wl-copy")
-                .stdin(std::process::Stdio::piped())
-                .spawn()
-                .ok();
-            if let Some(ref mut child) = restore {
-                if let Some(stdin) = child.stdin.as_mut() {
-                    use std::io::Write;
-                    let _ = stdin.write_all(&old_output.stdout);
-                }
-                let _ = child.wait();
-            }
-        }
-    }
-
+    child.wait().map_err(|e| format!("{cmd} failed: {e}"))?;
     Ok(())
 }
 
-fn clipboard_paste_x11(text: &str) -> Result<(), String> {
-    let old = Command::new("xclip")
-        .args(["-selection", "clipboard", "-o"])
+/// Read clipboard, returning content only if the command succeeds with non-empty output.
+fn read_clipboard(cmd: &str, args: &[&str]) -> Option<Vec<u8>> {
+    Command::new(cmd)
+        .args(args)
         .output()
-        .ok();
+        .ok()
+        .filter(|o| o.status.success() && !o.stdout.is_empty())
+        .map(|o| o.stdout)
+}
 
-    let mut child = Command::new("xclip")
-        .args(["-selection", "clipboard"])
+/// Restore clipboard contents, ignoring errors (best-effort).
+fn restore_clipboard(cmd: &str, args: &[&str], data: &[u8]) {
+    if let Ok(mut child) = Command::new(cmd)
+        .args(args)
         .stdin(std::process::Stdio::piped())
         .spawn()
-        .map_err(|e| format!("Failed to run xclip: {e}"))?;
-
-    if let Some(stdin) = child.stdin.as_mut() {
-        use std::io::Write;
-        stdin.write_all(text.as_bytes())
-            .map_err(|e| format!("Failed to write to xclip: {e}"))?;
+    {
+        if let Some(stdin) = child.stdin.as_mut() {
+            let _ = stdin.write_all(data);
+        }
+        let _ = child.wait();
     }
-    child.wait().map_err(|e| format!("xclip failed: {e}"))?;
+}
 
-    // Simulate Ctrl+V via xdotool
-    let _ = Command::new("xdotool")
-        .args(["key", "--clearmodifiers", "ctrl+v"])
-        .status();
+fn clipboard_paste(text: &str) -> Result<(), String> {
+    let wayland = is_wayland();
 
-    // Restore
-    std::thread::sleep(std::time::Duration::from_millis(100));
-    if let Some(old_output) = old {
-        if !old_output.stdout.is_empty() {
-            let mut restore = Command::new("xclip")
-                .args(["-selection", "clipboard"])
-                .stdin(std::process::Stdio::piped())
-                .spawn()
-                .ok();
-            if let Some(ref mut child) = restore {
-                if let Some(stdin) = child.stdin.as_mut() {
-                    use std::io::Write;
-                    let _ = stdin.write_all(&old_output.stdout);
-                }
-                let _ = child.wait();
-            }
+    // Save current clipboard
+    let old = if wayland {
+        read_clipboard("wl-paste", &["--no-newline"])
+    } else {
+        read_clipboard("xclip", &["-selection", "clipboard", "-o"])
+    };
+
+    // Set clipboard to transcribed text
+    if wayland {
+        pipe_to_command("wl-copy", &[], text.as_bytes())?;
+    } else {
+        pipe_to_command("xclip", &["-selection", "clipboard"], text.as_bytes())?;
+    }
+
+    // Simulate Ctrl+V
+    std::thread::sleep(std::time::Duration::from_millis(50));
+    if wayland {
+        let paste_ok = Command::new("ydotool")
+            .args(["key", "29:1", "47:1", "47:0", "29:0"])
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false);
+        if !paste_ok {
+            eprintln!("Warning: ydotool Ctrl+V failed — text is in clipboard, paste manually with Ctrl+V");
+        }
+    } else {
+        let _ = Command::new("xdotool")
+            .args(["key", "--clearmodifiers", "ctrl+v"])
+            .status();
+    }
+
+    // Restore clipboard after target app has consumed the paste
+    std::thread::sleep(std::time::Duration::from_millis(300));
+    if let Some(old_data) = old {
+        if wayland {
+            restore_clipboard("wl-copy", &[], &old_data);
+        } else {
+            restore_clipboard("xclip", &["-selection", "clipboard"], &old_data);
         }
     }
 

@@ -14,8 +14,3 @@ export interface PlatformInfo {
 }
 
 export type DictationStatus = "idle" | "recording" | "processing" | "error";
-
-export interface AudioDevice {
-  deviceId: string;
-  label: string;
-}

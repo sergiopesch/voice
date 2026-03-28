@@ -2,7 +2,6 @@ import { create } from "zustand";
 import type {
   AppConfig,
   DictationStatus,
-  AudioDevice,
   PlatformInfo,
 } from "@/types";
 
@@ -12,7 +11,6 @@ interface AppState {
   interimTranscript: string;
   error: string | null;
 
-  audioDevices: AudioDevice[];
   selectedDeviceId: string | null;
   audioLevel: number;
 
@@ -23,7 +21,6 @@ interface AppState {
   setTranscript: (transcript: string) => void;
   setInterimTranscript: (interim: string) => void;
   setError: (error: string | null) => void;
-  setAudioDevices: (devices: AudioDevice[]) => void;
   setSelectedDevice: (deviceId: string | null) => void;
   setAudioLevel: (level: number) => void;
   setConfig: (config: AppConfig) => void;
@@ -36,7 +33,6 @@ export const useStore = create<AppState>((set) => ({
   transcript: "",
   interimTranscript: "",
   error: null,
-  audioDevices: [],
   selectedDeviceId: null,
   audioLevel: 0,
   config: null,
@@ -46,7 +42,6 @@ export const useStore = create<AppState>((set) => ({
   setTranscript: (transcript) => set({ transcript }),
   setInterimTranscript: (interim) => set({ interimTranscript: interim }),
   setError: (error) => set({ error, status: error ? "error" : "idle" }),
-  setAudioDevices: (devices) => set({ audioDevices: devices }),
   setSelectedDevice: (deviceId) => set({ selectedDeviceId: deviceId }),
   setAudioLevel: (level) => set({ audioLevel: level }),
   setConfig: (config) => set({ config }),
