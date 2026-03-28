@@ -15,16 +15,14 @@
 
 ---
 
-## Install
+### Install (pre-built, ~5 seconds)
 
 ```bash
 bash <(curl -s https://raw.githubusercontent.com/sergiopesch/voice/master/install)
 ```
 
-That's it. The installer checks your system, downloads the app, and walks you through setup.
-
 <details>
-<summary>Build from source instead</summary>
+<summary>Build from source (~2 minutes)</summary>
 
 ```bash
 git clone https://github.com/sergiopesch/voice.git
@@ -35,33 +33,37 @@ cd voice
 
 ## How It Works
 
+<p align="center">
+
 ```
-┌─────────┐    ┌─────────────┐    ┌─────────────┐    ┌──────────────┐
-│  Alt+D  │───>│  Microphone  │───>│  whisper.cpp │───>│  Text typed  │
-│ (hotkey)│    │  captures    │    │  transcribes │    │  at cursor   │
-│         │<───│  your voice  │    │  locally     │    │              │
-│  Alt+D  │    └─────────────┘    └─────────────┘    └──────────────┘
-│ (stop)  │
-└─────────┘         Your machine — nothing leaves it.
+         ╭────────────╮          ╭────────────╮          ╭────────────╮
+         │            │          │            │          │            │
+         │  🎙️ Speak  │ ──────> │ 🔍 Transcribe ──────> │  ⌨️ Type   │
+         │            │          │            │          │            │
+         ╰────────────╯          ╰────────────╯          ╰────────────╯
+          Press Alt+D            whisper.cpp              Text appears
+          and speak              runs locally             at your cursor
 ```
 
-1. **Launch** — open Voice from your app launcher. It lives in the system tray.
-2. **Press Alt+D** — start speaking.
-3. **Press Alt+D again** — text appears wherever your cursor is.
+</p>
 
-No window. No account. No cloud. Everything runs locally.
+1. **Launch Voice** — it appears in your system tray (no window).
+2. **Press Alt+D** — speak naturally.
+3. **Press Alt+D again** — your words are typed wherever your cursor is.
+
+No account. No cloud. Audio never leaves your machine.
 
 > First launch downloads the speech model (~142 MB, one-time). After that, fully offline.
 
 ## Features
 
-| Feature | Details |
-|---------|---------|
-| **Local transcription** | whisper.cpp runs on your machine — audio never leaves it |
-| **Global hotkey** | Works from any app. Default `Alt+D`, customizable |
+| | |
+|---|---|
+| **Fully local** | whisper.cpp runs on your machine — audio never leaves it |
+| **Global hotkey** | Works from any app. Default `Alt+D`, customizable on install |
 | **System tray** | Mic icon turns red while recording |
-| **Smart insertion** | Types directly into focused app, clipboard fallback |
-| **No account** | No sign-up, no API key, no subscription |
+| **Smart insertion** | Types directly into the focused app, clipboard fallback |
+| **No account needed** | No sign-up, no API key, no subscription, ever |
 
 ## Requirements
 
@@ -78,7 +80,7 @@ The installer handles everything, but for reference:
 
 ## Configuration
 
-Settings are in `~/.config/voice/config.json`. The installer lets you pick your hotkey, or change it later:
+The installer lets you pick your hotkey. You can change it anytime from the **system tray menu** or by editing `~/.config/voice/config.json`:
 
 ```json
 {
@@ -87,14 +89,12 @@ Settings are in `~/.config/voice/config.json`. The installer lets you pick your 
 }
 ```
 
-You can also change the hotkey from the **system tray icon** menu.
-
 <details>
 <summary>All settings</summary>
 
 | Setting | Default | Options |
 |---------|---------|---------|
-| `hotkey` | `Alt+D` | Any key combo (e.g. `Ctrl+Shift+V`, `Super+D`) |
+| `hotkey` | `Alt+D` | Any key combo (`Ctrl+Shift+V`, `Super+D`, etc.) |
 | `selectedMic` | `null` | Specific mic device ID, or null for system default |
 | `insertionStrategy` | `auto` | `auto`, `clipboard`, `type-simulation` |
 
