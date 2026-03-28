@@ -60,10 +60,9 @@ run_with_spinner() {
     local code=$?
     spinner_stop
     err "$msg"
-    # Show last 10 lines of output on failure
     echo
     dim "─── Error output ───"
-    tail -10 "$tmplog" | while IFS= read -r line; do dim "  $line"; done
+    tail -15 "$tmplog" | while IFS= read -r line; do dim "  $line"; done
     dim "─── End ───"
     rm -f "$tmplog"
     return $code
@@ -164,30 +163,40 @@ if [[ "$INSTALL_MODE" == true ]]; then
 
   export PATH="$HOME/.cargo/bin:$PATH"
 
-  run_with_spinner "Compiling frontend (Vite)" \
-    npm run build:frontend -w apps/desktop
-
-  run_with_spinner "Compiling backend (Rust release)" \
-    bash -c 'cd apps/desktop/src-tauri && cargo build --release 2>&1'
-
-  run_with_spinner "Packaging .deb" \
+  # Build everything via cargo tauri build (handles frontend + backend + packaging)
+  run_with_spinner "Compiling & packaging (this takes a few minutes)" \
     bash -c 'cd apps/desktop && cargo tauri build 2>&1'
 
   DEB=$(find apps/desktop/src-tauri/target/release/bundle/deb -name "*.deb" 2>/dev/null | head -1)
   if [[ -n "$DEB" ]]; then
     echo
     echo -e "${BOLD}  Install${NC}"
-    run_with_spinner "Installing Voice" \
-      sudo dpkg -i "$DEB"
+    # Run dpkg directly (not via spinner) so sudo can prompt for password
+    echo -e "  ${CYAN}⠋${NC} Installing Voice..."
+    if sudo dpkg -i "$DEB" > /dev/null 2>&1; then
+      ok "Voice installed"
+    else
+      err "dpkg install failed"
+      exit 1
+    fi
   else
-    warn "No .deb package found. Run directly:"
-    dim "apps/desktop/src-tauri/target/release/voice"
+    err "No .deb package found"
+    dim "Run directly: apps/desktop/src-tauri/target/release/voice"
+    exit 1
   fi
 
   ELAPSED=$SECONDS
+  MINS=$((ELAPSED / 60))
+  SECS=$((ELAPSED % 60))
+  if (( MINS > 0 )); then
+    TIME_STR="${MINS}m ${SECS}s"
+  else
+    TIME_STR="${SECS}s"
+  fi
+
   echo
   echo -e "${BOLD}${CYAN}  ╔═══════════════════════════════════════╗${NC}"
-  echo -e "${BOLD}${CYAN}  ║${NC}${BOLD}${GREEN}          Installed in ${ELAPSED}s!              ${CYAN}${BOLD}║${NC}"
+  printf  "  ${BOLD}${CYAN}║${NC}${BOLD}${GREEN}  %-37s ${BOLD}${CYAN}║${NC}\n" "Installed in ${TIME_STR}!"
   echo -e "${BOLD}${CYAN}  ╚═══════════════════════════════════════╝${NC}"
   echo
   echo -e "  Open ${BOLD}Voice${NC} from your app launcher"
@@ -200,7 +209,7 @@ else
   ELAPSED=$SECONDS
   echo
   echo -e "${BOLD}${CYAN}  ╔═══════════════════════════════════════╗${NC}"
-  echo -e "${BOLD}${CYAN}  ║${NC}${BOLD}${GREEN}        Ready in ${ELAPSED}s!                   ${CYAN}${BOLD}║${NC}"
+  printf  "  ${BOLD}${CYAN}║${NC}${BOLD}${GREEN}  %-37s ${BOLD}${CYAN}║${NC}\n" "Ready in ${ELAPSED}s!"
   echo -e "${BOLD}${CYAN}  ╚═══════════════════════════════════════╝${NC}"
   echo
   echo -e "  Development:   ${CYAN}npm run dev${NC}"
