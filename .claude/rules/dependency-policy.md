@@ -21,8 +21,7 @@
 | Crate | Purpose | Justification |
 |-------|---------|---------------|
 | tauri | Desktop shell | Core desktop runtime |
-| tauri-plugin-shell | Shell access | Process spawning for insertion tools |
-| tauri-plugin-global-shortcut | Global hotkey | Register Alt+D system-wide shortcut |
+| tauri-plugin-global-shortcut | Global hotkey | Register system-wide shortcut |
 | serde/serde_json | Serialization | Tauri command data exchange |
 | dirs | Path resolution | XDG standard directory resolution |
 | whisper-rs | ASR engine | Local speech-to-text via whisper.cpp bindings |

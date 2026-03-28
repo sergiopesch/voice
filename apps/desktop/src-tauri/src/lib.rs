@@ -362,42 +362,47 @@ fn start_hotkey_listener(app_handle: tauri::AppHandle) {
             return;
         }
 
-        // Only use the first keyboard to avoid duplicate events from multiple devices
-        let device = devices.into_iter().next().unwrap();
-        info!("evdev hotkey listener started");
+        info!("evdev hotkey listener started on {} keyboard(s)", devices.len());
 
+        // Listen on all keyboards — the debounce in eval_toggle prevents double-fires
         let alt_held = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
-        let alt = alt_held.clone();
 
-        let mut dev = device;
-        loop {
-            match dev.fetch_events() {
-                Ok(events) => {
-                    for ev in events {
-                        if let InputEventKind::Key(key) = ev.kind() {
-                            let pressed = ev.value() == 1;
-                            let repeat = ev.value() == 2;
+        for device in devices {
+            let app = app_handle.clone();
+            let alt = alt_held.clone();
 
-                            match key {
-                                Key::KEY_LEFTALT | Key::KEY_RIGHTALT => {
-                                    alt.store(pressed, Ordering::Relaxed);
-                                }
-                                Key::KEY_D if pressed && !repeat => {
-                                    if alt.load(Ordering::Relaxed) {
-                                        debug!("Alt+D detected via evdev");
-                                        eval_toggle(&app_handle);
+            std::thread::spawn(move || {
+                let mut dev = device;
+                loop {
+                    match dev.fetch_events() {
+                        Ok(events) => {
+                            for ev in events {
+                                if let InputEventKind::Key(key) = ev.kind() {
+                                    let pressed = ev.value() == 1;
+                                    let repeat = ev.value() == 2;
+
+                                    match key {
+                                        Key::KEY_LEFTALT | Key::KEY_RIGHTALT => {
+                                            alt.store(pressed, Ordering::Relaxed);
+                                        }
+                                        Key::KEY_D if pressed && !repeat => {
+                                            if alt.load(Ordering::Relaxed) {
+                                                debug!("Alt+D detected via evdev");
+                                                eval_toggle(&app);
+                                            }
+                                        }
+                                        _ => {}
                                     }
                                 }
-                                _ => {}
                             }
+                        }
+                        Err(e) => {
+                            error!("Keyboard read error: {e}");
+                            break;
                         }
                     }
                 }
-                Err(e) => {
-                    error!("Keyboard read error: {e}");
-                    break;
-                }
-            }
+            });
         }
     });
 }
