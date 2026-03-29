@@ -73,9 +73,9 @@ pgrep -x ydotoold > /dev/null || ydotoold &
 ## Packaging
 | Format | Status | Notes |
 |--------|--------|-------|
-| .deb | Working | Built via `./scripts/setup.sh --install` |
-| .rpm | Working | Built automatically alongside .deb |
-| AppImage | Requires linuxdeploy | Not built by default |
+| .deb | Working | Built via `./scripts/setup.sh --install` or GitHub Releases |
+| .rpm | Not configured | Can be added to tauri.conf.json targets |
+| AppImage | Not configured | Requires linuxdeploy |
 
 ## Data Locations
 | Data | Path |

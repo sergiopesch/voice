@@ -74,7 +74,7 @@ trap 'spinner_stop' EXIT
 INSTALL_MODE=false
 [[ "${1:-}" == "--install" ]] && INSTALL_MODE=true
 
-if $INSTALL_MODE; then TOTAL_STEPS=4; else TOTAL_STEPS=3; fi
+if $INSTALL_MODE; then TOTAL_STEPS=5; else TOTAL_STEPS=3; fi
 STEP_NUM=0
 
 # ─── Header ─────────────────────────────────────────────
@@ -152,7 +152,7 @@ step "Node dependencies"
 
 run_step "npm install" npm install --silent --prefer-offline
 
-# ─── Step 4 & 5: Build & Install ────────────────────────
+# ─── Steps 4-5: Build & Install ─────────────────────────
 if [[ "$INSTALL_MODE" == true ]]; then
   export PATH="$HOME/.cargo/bin:$PATH"
 

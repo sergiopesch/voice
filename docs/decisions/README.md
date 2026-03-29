@@ -47,8 +47,8 @@ Document significant technical decisions here using the format below.
 - **Date**: 2026-03-24
 - **Status**: accepted
 - **Context**: Need microphone capture for dictation; could use Web APIs or native Rust audio libs (cpal, etc.)
-- **Decision**: Use WebView getUserMedia + ScriptProcessorNode for audio capture
-- **Consequences**: Simpler implementation, well-tested browser APIs, automatic device enumeration. Audio data base64-encoded and passed to Rust for whisper-rs (see ADR-008). Trade-off: requires WebKitGTK window to be "shown" (1x1 transparent off-screen) for getUserMedia to work.
+- **Decision**: Use WebView getUserMedia + AudioWorklet for audio capture (ScriptProcessorNode fallback)
+- **Consequences**: Off-main-thread audio processing, well-tested browser APIs, automatic device enumeration. Audio data base64-encoded and passed to Rust for whisper-rs (see ADR-008). Trade-off: requires WebKitGTK window to be "shown" (1x1 transparent off-screen) for getUserMedia to work.
 
 ### ADR-006: Linux-only scope
 - **Date**: 2026-03-25

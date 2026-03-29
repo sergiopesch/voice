@@ -40,7 +40,6 @@ apps/desktop/           Tauri application
 |---------|-----------|---------|
 | `get_config` | Frontend -> Rust | Load persisted settings |
 | `save_config` | Frontend -> Rust | Persist settings |
-| `get_platform_info` | Frontend -> Rust | Session type, desktop env |
 | `transcribe_audio` | Frontend -> Rust | Send base64-encoded audio, get transcript |
 | `insert_text` | Frontend -> Rust | Insert transcript into active app |
 | `set_recording_state` | Frontend -> Rust | Update tray icon and menu |

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Voice — quick install from pre-built release
-# Usage: curl -fsSL https://raw.githubusercontent.com/sergiopesch/voice/master/scripts/install.sh | bash
+# Usage: bash <(curl -s https://raw.githubusercontent.com/sergiopesch/voice/master/install)
 
 VERSION="0.1.0"
 DEB_URL="https://github.com/sergiopesch/voice/releases/download/v${VERSION}/Voice_${VERSION}_amd64.deb"

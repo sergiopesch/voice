@@ -14,8 +14,9 @@ Invoke when changes touch the system tray, global shortcut registration, window 
 ### Global shortcut
 - Is Alt+D registered successfully on startup?
 - Does `eval_toggle()` correctly call `window.__toggleDictation()` via JS eval?
-- Is the 100ms delay between `window.show()` and `window.eval()` still necessary?
-- Do the three trigger mechanisms (Tauri plugin, evdev, Unix socket) all call the same path?
+- Is the 50ms delay between `window.show()` and `window.eval()` still necessary?
+- Do the trigger mechanisms (evdev, Tauri plugin, Unix socket) all call the same path?
+- Is the 500ms debounce in eval_toggle working correctly across threads?
 
 ### evdev fallback
 - Does the evdev listener handle missing `/dev/input/event*` devices?

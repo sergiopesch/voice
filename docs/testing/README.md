@@ -4,21 +4,21 @@
 
 Automated tests are in place for both frontend and backend.
 
-### Rust (12 tests)
+### Rust (13 tests)
 Run with `cargo test` from `apps/desktop/src-tauri/`.
 
 | Module | Tests | What's Covered |
 |--------|-------|----------------|
 | `config` | 4 | Default values, serialization round-trip, deserialization with defaults, kebab-case strategy |
 | `insertion` | 2 | Strategy serialization (kebab-case), session detection |
-| `lib` | 6 | Base64 audio decoding (valid, empty, invalid length, invalid encoding), socket path, hotkey config |
+| `lib` | 7 | Base64 audio decoding (valid, empty, invalid length, invalid encoding), socket path, hotkey config, hotkey modes |
 
-### Frontend (9 tests)
+### Frontend (8 tests)
 Run with `npm test` from project root.
 
 | File | Tests | What's Covered |
 |------|-------|----------------|
-| `store.test.ts` | 9 | All store actions: status transitions, error handling, transcript management, audio level, config/platform storage |
+| `store.test.ts` | 8 | All store actions: status transitions, error handling, transcript management, audio level, config storage |
 
 ## Running Tests
 

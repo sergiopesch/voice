@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate app icons for Voice Dictation.
 
-Creates PNG icons at required sizes for Tauri (Linux .deb, AppImage, macOS).
+Creates PNG icons at required sizes for Tauri (Linux .deb packaging).
 Uses only the Python standard library — no external deps needed.
 """
 import struct
