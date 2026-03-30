@@ -187,16 +187,18 @@ body {
   );
   transform-origin: center bottom;
   transform: scaleY(var(--bar-level));
-  opacity: 0.84;
-}
-
-.status-overlay__card--recording .status-overlay__meter-bar {
-  animation: overlay-wave 1.1s ease-in-out infinite;
+  transition:
+    transform 90ms ease-out,
+    opacity 120ms ease-out;
 }
 
 .status-overlay__card--processing .status-overlay__meter-bar {
   animation: overlay-wave 1.4s ease-in-out infinite;
   opacity: 0.68;
+}
+
+.status-overlay__card--recording .status-overlay__meter-bar {
+  box-shadow: 0 0 12px rgba(251, 113, 133, 0.16);
 }
 
 @keyframes overlay-spin {

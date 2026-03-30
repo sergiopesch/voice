@@ -19,6 +19,27 @@ export function StatusOverlay() {
       ? "status-overlay__card--recording"
       : "status-overlay__card--processing",
   ].join(" ");
+  const meterBars = LEVEL_PATTERN.map((factor, index) => {
+    if (isRecording) {
+      const barLevel = Math.max(
+        0.12,
+        Math.min(1, 0.08 + level * (0.62 + factor * 0.92)),
+      );
+
+      return {
+        key: index,
+        level: barLevel,
+        opacity: 0.42 + barLevel * 0.58,
+      };
+    }
+
+    return {
+      key: index,
+      level: 0.3 + factor * 0.46,
+      opacity: 0.68,
+      animationDelay: `${index * 80}ms`,
+    };
+  });
 
   return (
     <main className="status-overlay">
@@ -52,23 +73,20 @@ export function StatusOverlay() {
           </p>
 
           <div className="status-overlay__meter" aria-hidden="true">
-            {LEVEL_PATTERN.map((factor, index) => {
-              const barLevel = Math.max(0.18, Math.min(1, level * factor + 0.18));
-
-              return (
-                <span
-                  // The bar pattern is fixed, so the index is stable here.
-                  key={index}
-                  className="status-overlay__meter-bar"
-                  style={
-                    {
-                      "--bar-level": `${barLevel}`,
-                      animationDelay: `${index * 80}ms`,
-                    } as CSSProperties
-                  }
-                />
-              );
-            })}
+            {meterBars.map((bar) => (
+              <span
+                // The bar pattern is fixed, so the index is stable here.
+                key={bar.key}
+                className="status-overlay__meter-bar"
+                style={
+                  {
+                    "--bar-level": `${bar.level}`,
+                    opacity: `${bar.opacity}`,
+                    animationDelay: bar.animationDelay,
+                  } as CSSProperties
+                }
+              />
+            ))}
           </div>
         </div>
       </section>

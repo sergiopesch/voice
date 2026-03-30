@@ -17,9 +17,13 @@ class AudioCaptureProcessor extends AudioWorkletProcessor {
     }
     this._levelSamples += samples.length;
 
-    if (this._levelSamples >= 4096) {
+    if (this._levelSamples >= 1024) {
       const rms = Math.sqrt(this._levelAccum / this._levelSamples);
-      this.port.postMessage({ type: "level", data: Math.min(1, rms * 8) });
+      const scaled = Math.max(0, rms) * 18;
+      this.port.postMessage({
+        type: "level",
+        data: Math.min(1, Math.pow(scaled, 0.78)),
+      });
       this._levelAccum = 0;
       this._levelSamples = 0;
     }

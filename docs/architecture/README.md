@@ -46,11 +46,11 @@ apps/desktop/           Tauri application
 | `insert_text` | Frontend -> Rust | Insert transcript into active app |
 | `set_recording_state` | Frontend -> Rust | Update tray icon and menu |
 | `show_notification` | Frontend -> Rust | Desktop notification via notify-send |
-| `window.eval()` | Rust -> Frontend | Toggle dictation from hotkey |
+| `emit_to("main", "voice:toggle-dictation", ())` | Rust -> Frontend | Toggle dictation from hotkey |
 
 ## Trigger Mechanisms
 
-All three call `eval_toggle()` which spawns a thread to run `window.__toggleDictation()` via JS eval:
+All three call `eval_toggle()` which emits a targeted Tauri window event to the main webview:
 
 1. **Tauri global-shortcut plugin** (configurable, default Alt+D) — primary
 2. **evdev listener** — Linux fallback for Wayland, needs `input` group

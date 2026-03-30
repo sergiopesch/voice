@@ -7,16 +7,19 @@ use config::AppConfig;
 use log::{debug, error, info, warn};
 use std::sync::atomic::{AtomicI64, Ordering};
 use std::sync::Mutex;
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 use transcribe::{WhisperMutex, WhisperState};
 
-// Debounce: ignore eval_toggle calls within 500ms of each other.
-// Prevents double-fire from multiple evdev keyboard devices.
+// Debounce: ignore duplicate toggle events that arrive almost immediately.
+// This collapses duplicate keyboard backends and duplicate evdev devices
+// without eating legitimate quick user toggles.
 static LAST_TOGGLE_MS: AtomicI64 = AtomicI64::new(0);
 
 // Evdev hotkey mode: 0 = Alt+D, 1 = Alt+Shift+D, 255 = custom (disabled)
 static EVDEV_HOTKEY_MODE: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(0);
 
+const TOGGLE_DICTATION_EVENT: &str = "voice:toggle-dictation";
+const TOGGLE_DEBOUNCE_MS: i64 = 120;
 const HIDDEN_WINDOW_POS_X: i32 = -100;
 const HIDDEN_WINDOW_POS_Y: i32 = -100;
 const HIDDEN_WINDOW_SIZE: u32 = 1;
@@ -37,6 +40,16 @@ fn hotkey_to_evdev_mode(hotkey: &str) -> u8 {
         "Alt+Shift+D" => 1,
         _ => 255,
     }
+}
+
+fn is_wayland_session() -> bool {
+    std::env::var("XDG_SESSION_TYPE")
+        .map(|value| value.eq_ignore_ascii_case("wayland"))
+        .unwrap_or(false)
+}
+
+fn prefers_evdev_hotkey(session_is_wayland: bool, hotkey: &str) -> bool {
+    session_is_wayland && hotkey_to_evdev_mode(hotkey) != 255
 }
 
 #[tauri::command]
@@ -353,25 +366,19 @@ fn ensure_model_downloaded(app_handle: &tauri::AppHandle) -> Result<(), String> 
     Ok(())
 }
 
-// --- Toggle dictation via JS eval ---
+// --- Toggle dictation via window event ---
 
 pub fn eval_toggle(app_handle: &tauri::AppHandle) {
     // Debounce with SeqCst to guarantee cross-thread visibility.
     let now = now_ms();
     let last = LAST_TOGGLE_MS.swap(now, Ordering::SeqCst);
-    if (now - last).abs() < 500 {
+    if (now - last).abs() < TOGGLE_DEBOUNCE_MS {
         debug!("eval_toggle debounced ({}ms since last)", now - last);
         return;
     }
 
-    if let Some(window) = app_handle.get_webview_window("main") {
-        std::thread::spawn(move || {
-            if let Err(e) = window.eval("window.__toggleDictation && window.__toggleDictation()") {
-                error!("JS eval failed: {e}");
-            }
-        });
-    } else {
-        error!("Window 'main' not found");
+    if let Err(e) = app_handle.emit_to("main", TOGGLE_DICTATION_EVENT, ()) {
+        error!("Failed to emit toggle event: {e}");
     }
 }
 
@@ -548,6 +555,8 @@ pub fn run() {
         .setup(|app| {
             let hotkey = configured_hotkey();
             EVDEV_HOTKEY_MODE.store(hotkey_to_evdev_mode(&hotkey), Ordering::SeqCst);
+            let wayland_session = is_wayland_session();
+            let use_evdev_hotkey = prefers_evdev_hotkey(wayland_session, &hotkey);
 
             #[cfg(target_os = "linux")]
             grant_webview_permissions(app);
@@ -560,8 +569,8 @@ pub fn run() {
                 let _ = hide_overlay_window(&window);
             }
 
-            // Register Tauri global shortcut (works on X11, may not work on Wayland)
-            {
+            // Use a single hotkey backend per session to avoid duplicate toggles.
+            if !use_evdev_hotkey {
                 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
                 if let Ok(shortcut) = hotkey.parse::<Shortcut>() {
                     let handle = app.handle().clone();
@@ -575,14 +584,18 @@ pub fn run() {
                             }
                         },
                     );
-                    info!("Global shortcut {hotkey} registered");
+                    info!("Global shortcut backend active for {hotkey}");
                 }
+            } else {
+                info!("evdev hotkey backend active for {hotkey}");
             }
 
             start_socket_listener(app.handle().clone());
 
             #[cfg(target_os = "linux")]
-            start_hotkey_listener(app.handle().clone());
+            if use_evdev_hotkey {
+                start_hotkey_listener(app.handle().clone());
+            }
 
             if let Err(e) = tray::setup_tray(app, &hotkey) {
                 error!("Failed to setup tray: {e}");
@@ -659,6 +672,14 @@ mod tests {
         assert_eq!(hotkey_to_evdev_mode("Alt+D"), 0);
         assert_eq!(hotkey_to_evdev_mode("Alt+Shift+D"), 1);
         assert_eq!(hotkey_to_evdev_mode("Ctrl+Shift+V"), 255);
+    }
+
+    #[test]
+    fn evdev_hotkey_backend_only_handles_supported_wayland_shortcuts() {
+        assert!(prefers_evdev_hotkey(true, "Alt+D"));
+        assert!(prefers_evdev_hotkey(true, "Alt+Shift+D"));
+        assert!(!prefers_evdev_hotkey(true, "Ctrl+Shift+V"));
+        assert!(!prefers_evdev_hotkey(false, "Alt+D"));
     }
 
     #[test]

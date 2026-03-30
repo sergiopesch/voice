@@ -13,7 +13,10 @@ import type { DictationStatus } from "@/types";
 const TARGET_SAMPLE_RATE = 16000;
 const STATUS_OVERLAY_WIDTH = 252;
 const STATUS_OVERLAY_HEIGHT = 112;
-const TOGGLE_DEDUPE_MS = 150;
+const TOGGLE_DEDUPE_MS = 120;
+const AUDIO_LEVEL_ATTACK = 0.68;
+const AUDIO_LEVEL_RELEASE = 0.24;
+const AUDIO_LEVEL_FLOOR = 0.01;
 
 type DictationPhase = DictationStatus | "starting" | "stopping";
 type QueuedAction = "start" | "stop" | null;
@@ -30,11 +33,13 @@ export function useDictation() {
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const workletRef = useRef<AudioWorkletNode | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const silentSinkRef = useRef<GainNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const samplesRef = useRef<Float32Array[]>([]);
   const phaseRef = useRef<DictationPhase>("idle");
   const queuedActionRef = useRef<QueuedAction>(null);
   const lastToggleRequestMsRef = useRef(0);
+  const smoothedAudioLevelRef = useRef(0);
 
   const prepareWindow = useCallback(async () => {
     try {
@@ -56,6 +61,38 @@ export function useDictation() {
     }
   }, []);
 
+  const updateAudioLevel = useCallback(
+    (rawLevel: number) => {
+      const clamped = Math.min(1, Math.max(0, rawLevel));
+      const emphasized = Math.min(1, Math.pow(clamped, 0.72) * 1.12);
+      const previous = smoothedAudioLevelRef.current;
+      const blend =
+        emphasized >= previous ? AUDIO_LEVEL_ATTACK : AUDIO_LEVEL_RELEASE;
+      const next = previous + (emphasized - previous) * blend;
+      const finalLevel = next < AUDIO_LEVEL_FLOOR ? 0 : next;
+
+      smoothedAudioLevelRef.current = finalLevel;
+      setAudioLevel(finalLevel);
+    },
+    [setAudioLevel],
+  );
+
+  const resetAudioLevel = useCallback(() => {
+    smoothedAudioLevelRef.current = 0;
+    setAudioLevel(0);
+  }, [setAudioLevel]);
+
+  const connectSilentSink = useCallback(
+    (audioContext: AudioContext, sourceNode: AudioNode) => {
+      const silentSink = audioContext.createGain();
+      silentSink.gain.value = 0;
+      sourceNode.connect(silentSink);
+      silentSink.connect(audioContext.destination);
+      silentSinkRef.current = silentSink;
+    },
+    [],
+  );
+
   const connectWorklet = async (
     audioContext: AudioContext,
     source: MediaStreamAudioSourceNode,
@@ -70,11 +107,11 @@ export function useDictation() {
         if (e.data.type === "samples") {
           samplesRef.current.push(e.data.data as Float32Array);
         } else if (e.data.type === "level") {
-          setAudioLevel(e.data.data as number);
+          updateAudioLevel(e.data.data as number);
         }
       };
       source.connect(worklet);
-      worklet.connect(audioContext.destination);
+      connectSilentSink(audioContext, worklet);
       workletRef.current = worklet;
       return true;
     } catch {
@@ -96,10 +133,10 @@ export function useDictation() {
         sum += input[i]! * input[i]!;
       }
       const rms = Math.sqrt(sum / input.length);
-      setAudioLevel(Math.min(1, rms * 8));
+      updateAudioLevel(calculateVisualAudioLevel(rms));
     };
     source.connect(processor);
-    processor.connect(audioContext.destination);
+    connectSilentSink(audioContext, processor);
     processorRef.current = processor;
   };
 
@@ -111,6 +148,10 @@ export function useDictation() {
     if (processorRef.current) {
       processorRef.current.disconnect();
       processorRef.current = null;
+    }
+    if (silentSinkRef.current) {
+      silentSinkRef.current.disconnect();
+      silentSinkRef.current = null;
     }
     if (sourceRef.current) {
       sourceRef.current.disconnect();
@@ -161,7 +202,7 @@ export function useDictation() {
       clearTranscript();
       setInterimTranscript("");
       setStatus("recording");
-      setAudioLevel(0);
+      resetAudioLevel();
       samplesRef.current = [];
 
       const deviceId = useStore.getState().selectedDeviceId;
@@ -179,7 +220,10 @@ export function useDictation() {
 
       streamRef.current = stream;
 
-      const audioContext = new AudioContext({ sampleRate: TARGET_SAMPLE_RATE });
+      const audioContext = new AudioContext({
+        latencyHint: "interactive",
+        sampleRate: TARGET_SAMPLE_RATE,
+      });
       audioContextRef.current = audioContext;
 
       const source = audioContext.createMediaStreamSource(stream);
@@ -200,7 +244,7 @@ export function useDictation() {
       }
     } catch (err) {
       await teardownAudioGraph();
-      setAudioLevel(0);
+      resetAudioLevel();
       setRecordingState(false).catch(() => {});
       setInterimTranscript("");
       queuedActionRef.current = null;
@@ -230,7 +274,7 @@ export function useDictation() {
     setInterimTranscript("Wrapping up...");
 
     const sampleRate = await teardownAudioGraph();
-    setAudioLevel(0);
+    resetAudioLevel();
     setRecordingState(false).catch(() => {});
 
     const chunks = samplesRef.current;
@@ -350,4 +394,9 @@ async function resample(
   source.start(0);
   const rendered = await offlineCtx.startRendering();
   return new Float32Array(rendered.getChannelData(0));
+}
+
+function calculateVisualAudioLevel(rms: number): number {
+  const scaled = Math.max(0, rms) * 18;
+  return Math.min(1, Math.pow(scaled, 0.78));
 }
