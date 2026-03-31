@@ -23,6 +23,32 @@ pub struct TrayState {
 
 pub type TrayMutex = Mutex<TrayState>;
 
+#[derive(Copy, Clone)]
+enum TrayVisualState {
+    NotReady,
+    Ready,
+    Recording,
+}
+
+fn tray_debug_enabled() -> bool {
+    std::env::var("VOICE_TRAY_DEBUG")
+        .map(|value| {
+            matches!(
+                value.trim().to_ascii_lowercase().as_str(),
+                "1" | "true" | "yes" | "on"
+            )
+        })
+        .unwrap_or(false)
+}
+
+fn tray_state_label(state: TrayVisualState) -> &'static str {
+    match state {
+        TrayVisualState::NotReady => "not-ready",
+        TrayVisualState::Ready => "ready",
+        TrayVisualState::Recording => "recording",
+    }
+}
+
 pub fn setup_tray(app: &tauri::App, hotkey_label: &str) -> Result<(), Box<dyn std::error::Error>> {
     let quit = MenuItemBuilder::with_id("quit", "Quit Voice").build(app)?;
     let toggle = MenuItemBuilder::with_id("toggle", "Start Dictation").build(app)?;
@@ -57,7 +83,7 @@ pub fn setup_tray(app: &tauri::App, hotkey_label: &str) -> Result<(), Box<dyn st
         .item(&quit)
         .build()?;
 
-    let icon_rgba = create_mic_icon(32, [140, 140, 140, 235]);
+    let icon_rgba = create_mic_icon(32, [140, 140, 140, 235], TrayVisualState::NotReady);
     let icon = tauri::image::Image::new_owned(icon_rgba, 32, 32);
 
     let tray = TrayIconBuilder::new()
@@ -161,20 +187,53 @@ pub fn update_microphone_ready(app: &tauri::AppHandle, ready: bool) {
 }
 
 fn apply_tray_state(app: &tauri::AppHandle, tray_state: &TrayState) {
-    let (color, tooltip) = if tray_state.recording {
-        ([255, 80, 80, 240], "Voice — Recording...")
+    let (state, color, tooltip) = if tray_state.recording {
+        (
+            TrayVisualState::Recording,
+            [255, 80, 80, 240],
+            "Voice — Recording...",
+        )
     } else if tray_state.microphone_ready {
-        ([76, 201, 124, 240], "Voice — Ready")
+        (TrayVisualState::Ready, [76, 201, 124, 240], "Voice — Ready")
     } else {
-        ([140, 140, 140, 235], "Voice — Microphone not ready")
+        (
+            TrayVisualState::NotReady,
+            [140, 140, 140, 235],
+            "Voice — Microphone not ready",
+        )
     };
 
-    let icon_rgba = create_mic_icon(32, color);
+    let debug_enabled = tray_debug_enabled();
+    let effective_tooltip = if debug_enabled {
+        format!("{tooltip} [dbg:{}]", tray_state_label(state))
+    } else {
+        tooltip.to_string()
+    };
+
+    let icon_rgba = create_mic_icon(32, color, state);
     let icon = tauri::image::Image::new_owned(icon_rgba, 32, 32);
 
     if let Some(tray) = app.tray_by_id(&tray_state.tray_id) {
-        let _ = tray.set_icon(Some(icon));
-        let _ = tray.set_tooltip(Some(tooltip));
+        if let Err(e) = tray.set_icon(Some(icon)) {
+            error!("Failed to set tray icon: {e}");
+        }
+        if let Err(e) = tray.set_tooltip(Some(&effective_tooltip)) {
+            error!("Failed to set tray tooltip: {e}");
+        }
+
+        if debug_enabled {
+            info!(
+                "Tray update -> state={}, color=rgba({},{},{},{}), recording={}, microphone_ready={}, tooltip='{}'",
+                tray_state_label(state),
+                color[0],
+                color[1],
+                color[2],
+                color[3],
+                tray_state.recording,
+                tray_state.microphone_ready,
+                effective_tooltip
+            );
+        }
     }
 
     let label = if tray_state.recording {
@@ -194,7 +253,13 @@ pub fn update_tray_tooltip(app: &tauri::AppHandle, tooltip: &str) {
     }
 }
 
-fn create_mic_icon(size: u32, color: [u8; 4]) -> Vec<u8> {
+fn create_mic_icon(size: u32, color: [u8; 4], state: TrayVisualState) -> Vec<u8> {
+    let mut pixels = create_base_mic_icon(size, color);
+    draw_state_badge(&mut pixels, size, state);
+    pixels
+}
+
+fn create_base_mic_icon(size: u32, color: [u8; 4]) -> Vec<u8> {
     let mut pixels = vec![0u8; (size * size * 4) as usize];
     let s = size as f32;
 
@@ -220,6 +285,134 @@ fn create_mic_icon(size: u32, color: [u8; 4]) -> Vec<u8> {
     }
 
     pixels
+}
+
+fn draw_state_badge(pixels: &mut [u8], size: u32, state: TrayVisualState) {
+    match state {
+        TrayVisualState::NotReady => {
+            // A high-contrast slash keeps "not ready" visible in monochrome trays.
+            draw_line(pixels, size, 9, 23, 23, 9, [255, 255, 255, 235], 1.5);
+            draw_line(pixels, size, 10, 23, 23, 10, [255, 255, 255, 160], 1.0);
+        }
+        TrayVisualState::Ready => {
+            // Check mark also survives panel desaturation.
+            draw_line(pixels, size, 9, 18, 13, 22, [255, 255, 255, 235], 1.6);
+            draw_line(pixels, size, 13, 22, 22, 12, [255, 255, 255, 235], 1.6);
+        }
+        TrayVisualState::Recording => {
+            // Bright center dot for active capture.
+            draw_filled_circle(pixels, size, 22.0, 10.0, 3.2, [255, 255, 255, 245]);
+        }
+    }
+}
+
+fn draw_line(
+    pixels: &mut [u8],
+    size: u32,
+    x0: i32,
+    y0: i32,
+    x1: i32,
+    y1: i32,
+    color: [u8; 4],
+    thickness: f32,
+) {
+    let min_x = (x0.min(x1) as f32 - thickness - 1.0).floor().max(0.0) as i32;
+    let max_x = (x0.max(x1) as f32 + thickness + 1.0).ceil().min(size as f32 - 1.0) as i32;
+    let min_y = (y0.min(y1) as f32 - thickness - 1.0).floor().max(0.0) as i32;
+    let max_y = (y0.max(y1) as f32 + thickness + 1.0).ceil().min(size as f32 - 1.0) as i32;
+
+    let ax = x0 as f32;
+    let ay = y0 as f32;
+    let bx = x1 as f32;
+    let by = y1 as f32;
+    let abx = bx - ax;
+    let aby = by - ay;
+    let ab_len_sq = (abx * abx + aby * aby).max(0.0001);
+
+    for py in min_y..=max_y {
+        for px in min_x..=max_x {
+            let px_f = px as f32;
+            let py_f = py as f32;
+
+            let apx = px_f - ax;
+            let apy = py_f - ay;
+            let t = ((apx * abx + apy * aby) / ab_len_sq).clamp(0.0, 1.0);
+            let cx = ax + abx * t;
+            let cy = ay + aby * t;
+
+            let dx = px_f - cx;
+            let dy = py_f - cy;
+            let dist = (dx * dx + dy * dy).sqrt();
+
+            if dist <= thickness {
+                let softness = 0.8;
+                let alpha_factor = (1.0 - ((dist - (thickness - softness)).max(0.0) / softness))
+                    .clamp(0.0, 1.0);
+                blend_pixel(pixels, size, px, py, color, alpha_factor);
+            }
+        }
+    }
+}
+
+fn draw_filled_circle(
+    pixels: &mut [u8],
+    size: u32,
+    cx: f32,
+    cy: f32,
+    radius: f32,
+    color: [u8; 4],
+) {
+    let min_x = (cx - radius - 1.0).floor().max(0.0) as i32;
+    let max_x = (cx + radius + 1.0).ceil().min(size as f32 - 1.0) as i32;
+    let min_y = (cy - radius - 1.0).floor().max(0.0) as i32;
+    let max_y = (cy + radius + 1.0).ceil().min(size as f32 - 1.0) as i32;
+
+    for py in min_y..=max_y {
+        for px in min_x..=max_x {
+            let dx = px as f32 - cx;
+            let dy = py as f32 - cy;
+            let dist = (dx * dx + dy * dy).sqrt();
+            if dist <= radius {
+                let alpha_factor = (1.0 - (dist / radius).powf(2.2)).clamp(0.4, 1.0);
+                blend_pixel(pixels, size, px, py, color, alpha_factor);
+            }
+        }
+    }
+}
+
+fn blend_pixel(
+    pixels: &mut [u8],
+    size: u32,
+    x: i32,
+    y: i32,
+    color: [u8; 4],
+    alpha_factor: f32,
+) {
+    if x < 0 || y < 0 || x >= size as i32 || y >= size as i32 {
+        return;
+    }
+
+    let idx = (((y as u32) * size + (x as u32)) * 4) as usize;
+
+    let src_a = ((color[3] as f32 / 255.0) * alpha_factor).clamp(0.0, 1.0);
+    let dst_a = (pixels[idx + 3] as f32 / 255.0).clamp(0.0, 1.0);
+    let out_a = src_a + dst_a * (1.0 - src_a);
+
+    if out_a <= 0.0 {
+        return;
+    }
+
+    let blend_channel = |src: u8, dst: u8| -> u8 {
+        let src_c = src as f32 / 255.0;
+        let dst_c = dst as f32 / 255.0;
+        let out_c = (src_c * src_a + dst_c * dst_a * (1.0 - src_a)) / out_a;
+        (out_c * 255.0).round().clamp(0.0, 255.0) as u8
+    };
+
+    pixels[idx] = blend_channel(color[0], pixels[idx]);
+    pixels[idx + 1] = blend_channel(color[1], pixels[idx + 1]);
+    pixels[idx + 2] = blend_channel(color[2], pixels[idx + 2]);
+    pixels[idx + 3] = (out_a * 255.0).round().clamp(0.0, 255.0) as u8;
 }
 
 fn mic_shape(nx: f32, ny: f32) -> f32 {

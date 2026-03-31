@@ -65,7 +65,7 @@ No account. No cloud. Audio never leaves your machine.
 | --------------------------- | ------------------------------------------------------------------------------- |
 | **Fully local**             | whisper.cpp runs on your machine — audio never leaves it                       |
 | **Global hotkey**           | Works from any app. Default `Alt+D`, customizable on install                   |
-| **System tray**             | Mic icon shows readiness: gray (not ready), green (ready), red (recording)    |
+| **System tray**             | Mic icon shows readiness (color + shape): gray/slash (not ready), green/check (ready), red/dot (recording) |
 | **Cursor-side status overlay** | Shows listening and transcribing states right beside your cursor            |
 | **Smart insertion**         | Types directly into the focused app, clipboard fallback                         |
 | **No account needed**       | No sign-up, no API key, no subscription, ever                                  |
@@ -120,6 +120,21 @@ npm test                 # frontend tests
 cargo test               # rust tests (from apps/desktop/src-tauri/)
 ```
 
+### Tray diagnostics (optional)
+
+If tray state visuals look wrong on your desktop shell, you can enable tray diagnostics:
+
+```bash
+VOICE_TRAY_DEBUG=1 npm run dev
+```
+
+When enabled, Voice:
+
+- logs each tray state transition (`not-ready`, `ready`, `recording`) with RGBA color values
+- appends a small debug marker to the tray tooltip (for example `[dbg:recording]`)
+
+This helps confirm whether state updates are happening in-app even when your shell renders tray icons monochrome.
+
 <details>
 <summary>Project structure</summary>
 
@@ -142,6 +157,8 @@ apps/desktop/
 ## Known Limitations
 
 - **Wayland text insertion** depends on `ydotool` and may vary by compositor.
+- **Cursor-side overlay** depends on compositor/window-manager policy for always-on-top utility windows (best on Ubuntu-class setups; some Wayland compositors may restrict it).
+- **Tray icon colors** may be desaturated by some Linux shells (for example GNOME top bar); shape badges still indicate state.
 - **First launch needs internet** to download the model (~142 MB). After that, fully offline.
 - **Ubuntu is the tested platform.** Other distros may behave differently.
 
