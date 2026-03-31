@@ -291,13 +291,41 @@ fn draw_state_badge(pixels: &mut [u8], size: u32, state: TrayVisualState) {
     match state {
         TrayVisualState::NotReady => {
             // A high-contrast slash keeps "not ready" visible in monochrome trays.
-            draw_line(pixels, size, 9, 23, 23, 9, [255, 255, 255, 235], 1.5);
-            draw_line(pixels, size, 10, 23, 23, 10, [255, 255, 255, 160], 1.0);
+            draw_line(
+                pixels,
+                size,
+                (9, 23),
+                (23, 9),
+                [255, 255, 255, 235],
+                1.5,
+            );
+            draw_line(
+                pixels,
+                size,
+                (10, 23),
+                (23, 10),
+                [255, 255, 255, 160],
+                1.0,
+            );
         }
         TrayVisualState::Ready => {
             // Check mark also survives panel desaturation.
-            draw_line(pixels, size, 9, 18, 13, 22, [255, 255, 255, 235], 1.6);
-            draw_line(pixels, size, 13, 22, 22, 12, [255, 255, 255, 235], 1.6);
+            draw_line(
+                pixels,
+                size,
+                (9, 18),
+                (13, 22),
+                [255, 255, 255, 235],
+                1.6,
+            );
+            draw_line(
+                pixels,
+                size,
+                (13, 22),
+                (22, 12),
+                [255, 255, 255, 235],
+                1.6,
+            );
         }
         TrayVisualState::Recording => {
             // Bright center dot for active capture.
@@ -309,13 +337,14 @@ fn draw_state_badge(pixels: &mut [u8], size: u32, state: TrayVisualState) {
 fn draw_line(
     pixels: &mut [u8],
     size: u32,
-    x0: i32,
-    y0: i32,
-    x1: i32,
-    y1: i32,
+    start: (i32, i32),
+    end: (i32, i32),
     color: [u8; 4],
     thickness: f32,
 ) {
+    let (x0, y0) = start;
+    let (x1, y1) = end;
+
     let min_x = (x0.min(x1) as f32 - thickness - 1.0).floor().max(0.0) as i32;
     let max_x = (x0.max(x1) as f32 + thickness + 1.0).ceil().min(size as f32 - 1.0) as i32;
     let min_y = (y0.min(y1) as f32 - thickness - 1.0).floor().max(0.0) as i32;
