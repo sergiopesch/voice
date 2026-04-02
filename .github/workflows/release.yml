@@ -89,7 +89,7 @@ jobs:
           cp "$DEB" "voco_${{ steps.version.outputs.version }}_amd64.deb"
           APPIMAGE=$(find apps/desktop/src-tauri/target/release/bundle/appimage -name "*.AppImage" | head -1 || true)
           if [ -z "$APPIMAGE" ] && [ -d apps/desktop/src-tauri/target/release/bundle/appimage/VOCO.AppDir ]; then
-            APPIMAGE=$(VOCO_APPIMAGE_VERSION="${{ steps.version.outputs.version }}" bash ./scripts/package-appimage.sh)
+            APPIMAGE=$(VOCO_APPIMAGE_VERSION="${{ steps.version.outputs.version }}" bash ./scripts/package-appimage.sh | tail -n 1)
           fi
           if [ -n "$APPIMAGE" ]; then
             cp "$APPIMAGE" "VOCO-${{ steps.version.outputs.version }}-x86_64.AppImage"
