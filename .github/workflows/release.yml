@@ -46,11 +46,19 @@ jobs:
       - name: Install Tauri CLI
         run: cargo install tauri-cli --version "^2"
 
-      - name: Build
+      - name: Build Debian bundle
         working-directory: apps/desktop
         env:
           CMAKE_BUILD_PARALLEL_LEVEL: "4"
-        run: cargo tauri build
+        run: cargo tauri build --bundles deb
+
+      - name: Attempt AppImage bundle
+        id: build_appimage
+        continue-on-error: true
+        working-directory: apps/desktop
+        env:
+          CMAKE_BUILD_PARALLEL_LEVEL: "4"
+        run: cargo tauri build --bundles appimage
 
       - name: Resolve release metadata from tag
         id: version
@@ -74,20 +82,30 @@ jobs:
           echo "release_name=${RELEASE_NAME}" >> "$GITHUB_OUTPUT"
 
       - name: Collect release artifacts
+        id: artifacts
+        shell: bash
         run: |
           DEB=$(find apps/desktop/src-tauri/target/release/bundle/deb -name "*.deb" | head -1)
           cp "$DEB" "voco_${{ steps.version.outputs.version }}_amd64.deb"
           APPIMAGE=$(find apps/desktop/src-tauri/target/release/bundle/appimage -name "*.AppImage" | head -1 || true)
           if [ -z "$APPIMAGE" ] && [ -d apps/desktop/src-tauri/target/release/bundle/appimage/VOCO.AppDir ]; then
-            APPIMAGE=$(bash ./scripts/package-appimage.sh)
+            APPIMAGE=$(VOCO_APPIMAGE_VERSION="${{ steps.version.outputs.version }}" bash ./scripts/package-appimage.sh)
           fi
           if [ -n "$APPIMAGE" ]; then
             cp "$APPIMAGE" "VOCO-${{ steps.version.outputs.version }}-x86_64.AppImage"
+            echo "has_appimage=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_appimage=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Generate checksums
+        shell: bash
         run: |
-          sha256sum voco_${{ steps.version.outputs.version }}_amd64.deb VOCO-${{ steps.version.outputs.version }}-x86_64.AppImage 2>/dev/null > voco_checksums.txt || sha256sum "voco_${{ steps.version.outputs.version }}_amd64.deb" > voco_checksums.txt
+          if [ -f "VOCO-${{ steps.version.outputs.version }}-x86_64.AppImage" ]; then
+            sha256sum "voco_${{ steps.version.outputs.version }}_amd64.deb" "VOCO-${{ steps.version.outputs.version }}-x86_64.AppImage" > voco_checksums.txt
+          else
+            sha256sum "voco_${{ steps.version.outputs.version }}_amd64.deb" > voco_checksums.txt
+          fi
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -136,7 +154,16 @@ jobs:
             - Wayland text insertion depends on `ydotool` and compositor support
           files: |
             voco_${{ steps.version.outputs.version }}_amd64.deb
-            VOCO-${{ steps.version.outputs.version }}-x86_64.AppImage
             voco_checksums.txt
           draft: false
           prerelease: false
+
+      - name: Upload AppImage asset
+        if: steps.artifacts.outputs.has_appimage == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ steps.version.outputs.tag_name }}" \
+            "VOCO-${{ steps.version.outputs.version }}-x86_64.AppImage" \
+            --repo "${{ github.repository }}" \
+            --clobber
