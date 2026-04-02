@@ -11,14 +11,14 @@ bash <(curl -s https://raw.githubusercontent.com/sergiopesch/voco/master/install
 Manual install:
 
 ```bash
-wget https://github.com/sergiopesch/voco/releases/download/voco.2026.0.2/voco_2026.0.2_amd64.deb
-sudo dpkg -i voco_2026.0.2_amd64.deb
+wget https://github.com/sergiopesch/voco/releases/download/voco.2026.0.3/voco_2026.0.3_amd64.deb
+sudo dpkg -i voco_2026.0.3_amd64.deb
 ```
 
 Current stable release:
-- tag: `voco.2026.0.2`
-- Debian package: `voco_2026.0.2_amd64.deb`
-- AppImage: `VOCO-2026.0.2-x86_64.AppImage`
+- tag: `voco.2026.0.3`
+- Debian package: `voco_2026.0.3_amd64.deb`
+- AppImage: `VOCO-2026.0.3-x86_64.AppImage`
 
 ## Build From Source
 
