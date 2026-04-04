@@ -4,8 +4,8 @@
 </p>
 
 <p align="center">
-  <strong>A voice-native interface layer designed for speed and precision.</strong><br>
-  Press a hotkey, speak naturally, and VOCO turns speech into text directly at your cursor.
+  <strong>Linux dictation, local-first.</strong><br>
+  Press a hotkey, speak naturally, and VOCO inserts text at the cursor.
 </p>
 <!-- markdownlint-enable MD041 -->
 
